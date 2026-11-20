@@ -161,6 +161,9 @@
     #adminLoginCard {
       background-color: #ffffff !important;
     }
+    #adminPasswordVisibilityBtn {
+      color: #475569 !important;
+    }
     #adminPanelCard,
     #adminPanelCard * {
       color: #0f172a !important;
@@ -610,7 +613,15 @@
       </div>
       <p class="text-xs text-slate-700">Masukkan password admin untuk mengelola katalog, kanal WA, media sosial, dan testimoni.</p>
       <form id="adminLoginForm" class="space-y-3">
-        <input id="adminPasswordInput" type="password" required placeholder="Password admin" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-400 text-sm text-slate-950 placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+        <div class="relative">
+          <input id="adminPasswordInput" type="password" required placeholder="Password admin" autocomplete="current-password" class="w-full px-3.5 py-2.5 pr-12 rounded-xl bg-white border border-slate-400 text-sm text-slate-950 placeholder-slate-500 focus:outline-none focus:border-emerald-500" />
+          <button id="adminPasswordVisibilityBtn" type="button" aria-label="Tampilkan password" aria-pressed="false" class="absolute inset-y-0 right-0 flex items-center justify-center px-3 rounded-r-xl text-slate-600 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <svg id="adminPasswordEyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
+              <circle cx="12" cy="12" r="2.75" />
+            </svg>
+          </button>
+        </div>
         <button type="submit" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
           Masuk Admin
         </button>
@@ -1900,6 +1911,17 @@
     });
     document.getElementById('closeAdminLoginBtn').addEventListener('click', closeAdminLogin);
     document.getElementById('logoutAdminBtn').addEventListener('click', logoutAdmin);
+    document.getElementById('adminPasswordVisibilityBtn').addEventListener('click', e => {
+      const input = document.getElementById('adminPasswordInput');
+      const button = e.currentTarget;
+      const showingPassword = input.type === 'password';
+      input.type = showingPassword ? 'text' : 'password';
+      button.setAttribute('aria-label', showingPassword ? 'Sembunyikan password' : 'Tampilkan password');
+      button.setAttribute('aria-pressed', String(showingPassword));
+      document.getElementById('adminPasswordEyeIcon').innerHTML = showingPassword
+        ? '<path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18M10.58 10.59a2 2 0 0 0 2.83 2.83M9.88 5.09A10.7 10.7 0 0 1 12 4.88c6.25 0 9.75 6 9.75 6a17.2 17.2 0 0 1-3.02 3.47M6.23 6.23C3.68 7.93 2.25 10.88 2.25 10.88s3.5 6 9.75 6c1.06 0 2.03-.17 2.92-.46" />'
+        : '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" /><circle cx="12" cy="12" r="2.75" />';
+    });
 
     document.getElementById('adminLoginForm').addEventListener('submit', e => {
       e.preventDefault();

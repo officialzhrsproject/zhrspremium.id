@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zhrs Project — APK & Akun Digital Premium</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            slatebg: '#0b1220',
+            cardbg: '#111a2e',
+            cardhover: '#16223b',
+            line: '#1e2c47',
+            accent: '#22c55e',
+            cyanaccent: '#06b6d4'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #0b1220;
+      color: #e2e8f0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0b1220; }
+    ::-webkit-scrollbar-thumb { background: #1e2c47; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2d4269; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slatebg text-slate-200 selection:bg-emerald-500/30 selection:text-emerald-200">
+
+  <!-- Top Navigation -->
+  <header class="sticky top-0 z-30 border-b border-line bg-slatebg/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <a href="#" class="flex items-center gap-3 group min-w-0">
+        <div id="brandLogoMark" class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 font-extrabold text-lg flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/15">
+          ZP
+        </div>
+        <div class="truncate">
+          <div id="brandNameText" class="font-bold text-white text-base sm:text-lg tracking-tight truncate group-hover:text-emerald-300 transition">
+            Zhrs Project
+          </div>
+          <div id="brandTaglineText" class="text-xs text-slate-400 truncate hidden sm:block">
+            APK & Akun Digital Premium Terpercaya
+          </div>
+        </div>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+        <a href="#katalog" class="hover:text-emerald-400 transition">Katalog</a>
+        <a href="#testimoni" class="hover:text-emerald-400 transition">Testimoni</a>
+        <a href="#sosmed" class="hover:text-emerald-400 transition">Media Sosial</a>
+      </nav>
+
+      <div class="flex items-center gap-2.5 shrink-0">
+        <span id="storeStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Buka &amp; Aktif
+        </span>
+        <button id="quickOrderBtn" type="button" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20">
+          Order Sekarang
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-14">
+
+    <!-- Hero Banner -->
+    <section class="relative overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-cardbg via-[#101c33] to-[#0d1929] p-6 sm:p-10">
+      <div class="max-w-3xl space-y-4">
+        <div id="bannerBadgeText" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+          Proses Cepat &amp; Bergaransi
+        </div>
+        <h1 id="bannerTitleText" class="text-2xl sm:text-4xl font-extrabold text-white leading-tight tracking-tight">
+          Belanja APK &amp; Akun Premium Lebih Praktis di Zhrs Project
+        </h1>
+        <p id="bannerDescText" class="text-sm sm:text-base text-slate-300 leading-relaxed">
+          Pilih produk favorit, tentukan paket atau durasi, lalu order langsung ke salah satu dari 3 Admin WhatsApp aktif.
+        </p>
+        <div class="pt-2 flex flex-wrap items-center gap-3">
+          <a href="#katalog" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+            Lihat Katalog Produk
+          </a>
+          <a href="#testimoni" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-100 border border-line transition">
+            Cek Testimoni Pembeli
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Catalog Section -->
+    <section id="katalog" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Katalog Produk &amp; Layanan</h2>
+          <p class="text-sm text-slate-400 mt-1">Klik tombol pesan pada produk untuk memilih kanal WhatsApp admin.</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="Cari produk atau paket..."
+            class="w-full sm:w-64 px-4 py-2 rounded-xl bg-cardbg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+          />
+          <div id="categoryFilterBar" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </div>
+
+      <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimoni" class="space-y-6">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Testimoni &amp; #Tagar Pembeli</h2>
+          <p class="text-sm text-slate-400 mt-1">Ulasan pembeli asli dan filter berdasarkan #tagar pilihan.</p>
+        </div>
+        <div id="tagFilterBar" class="flex flex-wrap gap-2"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Testimonial List -->
+        <div id="testimonialGrid" class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+        <!-- Add Testimonial Form (Text Only) -->
+        <div class="lg:col-span-4 rounded-2xl border border-line bg-cardbg p-5 space-y-4">
+          <div>
+            <h3 class="text-base font-bold text-white">Tulis Testimoni Pembeli</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Bagikan pengalaman order Anda (teks &amp; #tagar).</p>
+          </div>
+
+          <form id="testiForm" class="space-y-3.5">
+            <div>
+              <label for="testiAuthor" class="block text-xs font-medium text-slate-300 mb-1">Nama / Username</label>
+              <input id="testiAuthor" type="text" required placeholder="Contoh: Raka_09" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+            </div>
+
+            <div>
+              <label for="testiProduct" class="block text-xs font-medium text-slate-300 mb-1">Produk yang Dibeli</label>
+              <input id="testiProduct" type="text" required placeholder="Contoh: Netflix Premium UHD" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+            </div>
+
+            <div>
+              <label for="testiTag" class="block text-xs font-medium text-slate-300 mb-1">#Tagar</label>
+              <input id="testiTag" type="text" value="#ProsesKilat" placeholder="#ProsesKilat" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+            </div>
+
+            <div>
+              <label for="testiComment" class="block text-xs font-medium text-slate-300 mb-1">Ulasan</label>
+              <textarea id="testiComment" rows="3" required placeholder="Tulis pengalaman transaksi Anda..." class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"></textarea>
+            </div>
+
+            <button type="submit" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+              Kirim Testimoni
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social Media Section -->
+    <section id="sosmed" class="space-y-5">
+      <div>
+        <h2 class="text-xl sm:text-2xl font-bold text-white">Kanal Resmi Media Sosial</h2>
+        <p class="text-sm text-slate-400 mt-1">Ikuti informasi promo, stok terbaru, dan pengumuman resmi.</p>
+      </div>
+      <div id="socialGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-line bg-[#080d18] mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+      <div>
+        &copy; <span id="yearSpan">2026</span> <span id="footerBrandName" class="text-slate-200 font-semibold">Zhrs Project</span>. Seluruh hak cipta dilindungi.
+      </div>
+      <div class="flex items-center gap-4">
+        <span>Shortcut Admin: <kbd class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200 border border-line">Ctrl+Shift+A</kbd></span>
+        <button id="footerAdminBtn" type="button" class="text-slate-400 hover:text-emerald-400 underline underline-offset-4 transition">
+          Admin
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 3-Channel WhatsApp Order Modal -->
+  <div id="orderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div class="w-full max-w-lg rounded-2xl border border-line bg-cardbg p-6 space-y-5 shadow-2xl">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Konfirmasi Order WhatsApp</span>
+          <h3 id="orderModalProduct" class="text-lg font-bold text-white mt-0.5">Pilih Paket &amp; Admin</h3>
+          <p id="orderModalMeta" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button id="closeOrderModalBtn" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+          &times;
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label for="orderPackageSelect" class="block text-xs font-medium text-slate-300 mb-1">Pilih Paket / Durasi</label>
+          <select id="orderPackageSelect" class="w-full px-3.5 py-2.5 rounded-xl bg-slatebg border border-line text-sm text-white focus:outline-none focus:border-emerald-400"></select>
+        </div>
+        <div>
+          <label for="orderBuyerNote" class="block text-xs font-medium text-slate-300 mb-1">Catatan Tambahan (Opsional)</label>
+          <input id="orderBuyerNote" type="text" placeholder="Contoh: Email / request khusus..." class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        <div class="text-xs font-semibold text-slate-300">Pilih Salah Satu Kanal WhatsApp Admin:</div>
+        <div id="waChannelsList" class="grid grid-cols-1 gap-2.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Login Modal -->
+  <div id="adminLoginModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+    <div class="w-full max-w-sm rounded-2xl border border-line bg-cardbg p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Akses Panel Admin</h3>
+        <button id="closeAdminLoginBtn" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center">
+          &times;
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">Masukkan password admin untuk mengelola katalog, kanal WA, media sosial, dan testimoni.</p>
+      <form id="adminLoginForm" class="space-y-3">
+        <input id="adminPasswordInput" type="password" required placeholder="Password admin" class="w-full px-3.5 py-2.5 rounded-xl bg-slatebg border border-line text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400" />
+        <button type="submit" class="w-full py-2.5 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+          Masuk Admin
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard Modal -->
+  <div id="adminPanelModal" class="fixed inset-0 z-50 hidden items-start justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div class="w-full max-w-4xl rounded-2xl border border-line bg-cardbg p-6 my-6 space-y-6 shadow-2xl">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+        <div>
+          <span class="text-xs font-semibold text-emerald-400">MODE ADMIN AKTIF</span>
+          <h3 class="text-xl font-bold text-white">Panel Manajemen Zhrs Project</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="resetAllDataBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition">
+            Reset Default
+          </button>
+          <button id="closeAdminPanelBtn" type="button" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition">
+            Tutup
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Tabs -->
+      <div class="flex flex-wrap gap-2 border-b border-line pb-3">
+        <button type="button" data-admin-tab="brand" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950">Brand &amp; Banner</button>
+        <button type="button" data-admin-tab="products" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Katalog Produk</button>
+        <button type="button" data-admin-tab="wa" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">3 Kanal WhatsApp</button>
+        <button type="button" data-admin-tab="social" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Media Sosial (Hide)</button>
+        <button type="button" data-admin-tab="testimonials" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Kelola Testimoni</button>
+      </div>
+
+      <!-- Tab 1: Brand & Banner -->
+      <div id="adminTab-brand" class="admin-tab-pane space-y-4">
+        <form id="brandSettingsForm" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Nama Brand</label>
+            <input id="cfgBrandName" type="text" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Tagline</label>
+            <input id="cfgTagline" type="text" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Status Toko</label>
+            <select id="cfgStoreStatus" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white">
+              <option value="open">Buka &amp; Aktif</option>
+              <option value="busy">Ramai / Antrean</option>
+              <option value="closed">Tutup Sementara</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Badge Banner</label>
+            <input id="cfgBannerBadge" type="text" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-slate-300 mb-1">Judul Banner</label>
+            <input id="cfgBannerTitle" type="text" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-medium text-slate-300 mb-1">Deskripsi Banner</label>
+            <textarea id="cfgBannerDesc" rows="2" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white"></textarea>
+          </div>
+          <div class="sm:col-span-2 flex justify-end">
+            <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+              Simpan Pengaturan Brand
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 2: Products -->
+      <div id="adminTab-products" class="admin-tab-pane hidden space-y-5">
+        <form id="addProductForm" class="rounded-xl border border-line bg-slatebg p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <input id="prodName" type="text" required placeholder="Nama Produk" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+          <input id="prodCategory" type="text" required placeholder="Kategori (mis. Streaming)" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+          <input id="prodPackage" type="text" required placeholder="Paket (mis. 1 Bulan)" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+          <input id="prodPrice" type="number" required min="0" placeholder="Harga (Rp)" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+          <input id="prodDesc" type="text" placeholder="Deskripsi singkat produk..." class="sm:col-span-2 lg:col-span-3 px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+            + Tambah Produk
+          </button>
+        </form>
+
+        <div id="adminProductList" class="space-y-2.5"></div>
+      </div>
+
+      <!-- Tab 3: 3 WhatsApp Channels -->
+      <div id="adminTab-wa" class="admin-tab-pane hidden space-y-4">
+        <form id="waChannelsForm" class="space-y-3">
+          <div id="adminWaInputs" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+          <div class="flex justify-end">
+            <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+              Simpan 3 Kanal WhatsApp
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tab 4: Social Media (Hide Feature) -->
+      <div id="adminTab-social" class="admin-tab-pane hidden space-y-4">
+        <p class="text-xs text-slate-400">Gunakan tombol <strong class="text-white">Hide / Show</strong> untuk menyembunyikan atau menampilkan kanal media sosial di halaman publik.</p>
+        <div id="adminSocialList" class="space-y-2.5"></div>
+      </div>
+
+      <!-- Tab 5: Testimonials -->
+      <div id="adminTab-testimonials" class="admin-tab-pane hidden space-y-3">
+        <div id="adminTestimonialList" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-xl border border-emerald-500/40 bg-cardbg px-4 py-3 text-xs sm:text-sm font-medium text-white shadow-xl"></div>
+
+  <script>
+    const STORAGE_KEY = 'zhrs_project_spa_clean_v1';
+    const ADMIN_PASS = 'zhrs2026';
+
+    const DEFAULT_STATE = {
+      brand: {
+        name: 'Zhrs Project',
+        tagline: 'APK & Akun Digital Premium Terpercaya',
+        storeStatus: 'open',
+        bannerBadge: 'Proses Cepat & Bergaransi',
+        bannerTitle: 'Belanja APK & Akun Premium Lebih Praktis di Zhrs Project',
+        bannerDesc: 'Pilih produk favorit, tentukan paket atau durasi, lalu order langsung ke salah satu dari 3 Admin WhatsApp aktif.'
+      },
+      waChannels: [
+        { id: 'wa1', name: 'Admin 1 — Order Utama', phone: '6281234567890', note: 'Fast response' },
+        { id: 'wa2', name: 'Admin 2 — Cadangan', phone: '6281234567891', note: 'Aktif harian' },
+        { id: 'wa3', name: 'Admin 3 — Garansi & CS', phone: '6281234567892', note: 'Bantuan & klaim' }
+      ],
+      socials: [
+        { id: 'soc_ig', name: 'Instagram', handle: '@zhrsproject.id', url: 'https://instagram.com', hidden: false },
+        { id: 'soc_tg', name: 'Telegram', handle: 't.me/zhrsproject', url: 'https://t.me', hidden: false },
+        { id: 'soc_tt', name: 'TikTok', handle: '@zhrs.project', url: 'https://tiktok.com', hidden: false },
+        { id: 'soc_wa', name: 'Saluran WhatsApp', handle: 'Update Stok & Promo', url: 'https://whatsapp.com', hidden: false },
+        { id: 'soc_dc', name: 'Discord', handle: 'Komunitas Zhrs', url: 'https://discord.com', hidden: false },
+        { id: 'soc_yt', name: 'YouTube', handle: 'Panduan & Info', url: 'https://youtube.com', hidden: false }
+      ],
+      products: [
+        {
+          id: 'p_nf',
+          name: 'Netflix Premium UHD',
+          category: 'Streaming',
+          desc: 'Kualitas 4K UHD, profil aman, cocok untuk nonton harian.',
+          packages: [
+            { label: '1 Hari', price: 8000 },
+            { label: '7 Hari', price: 22000 },
+            { label: '1 Bulan (Sharing)', price: 35000 },
+            { label: '1 Bulan (Private)', price: 125000 }
+          ]
+        },
+        {
+          id: 'p_canva',
+          name: 'Canva Pro Team',
+          category: 'Desain & Produktivitas',
+          desc: 'Akses fitur Pro, penghapus latar belakang, dan ekspor transparan.',
+          packages: [
+            { label: '1 Bulan', price: 15000 },
+            { label: '3 Bulan', price: 35000 },
+            { label: '1 Tahun', price: 75000 }
+          ]
+        },
+        {
+          id: 'p_capcut',
+          name: 'CapCut Pro',
+          category: 'Editing',
+          desc: 'Fitur template, efek, dan ekspor resolusi tinggi tanpa watermark.',
+          packages: [
+            { label: '7 Hari', price: 12000 },
+            { label: '1 Bulan', price: 25000 },
+            { label: '3 Bulan', price: 55000 }
+          ]
+        },
+        {
+          id: 'p_spotify',
+          name: 'Spotify Individual',
+          category: 'Musik',
+          desc: 'Dengarkan musik bebas iklan dengan kualitas audio jernih.',
+          packages: [
+            { label: '1 Bulan', price: 20000 },
+            { label: '2 Bulan', price: 38000 }
+          ]
+        },
+        {
+          id: 'p_yt',
+          name: 'YouTube Premium',
+          category: 'Streaming',
+          desc: 'Bebas iklan, pemutaran latar belakang, dan YouTube Music.',
+          packages: [
+            { label: '1 Bulan (Individu)', price: 18000 },
+            { label: '1 Bulan (Family)', price: 28000 }
+          ]
+        },
+        {
+          id: 'p_gpt',
+          name: 'AI Assistant Plus',
+          category: 'Desain & Produktivitas',
+          desc: 'Akses model pintar dan fitur analisis untuk kerja harian.',
+          packages: [
+            { label: '7 Hari', price: 30000 },
+            { label: '1 Bulan', price: 85000 }
+          ]
+        }
+      ],
+      tags: ['#Semua', '#ProsesKilat', '#GaransiFull', '#NetflixAman'],
+      testimonials: [
+        { id: 't1', author: 'Raka_09', product: 'Netflix Premium UHD', tag: '#NetflixAman', comment: 'Akun langsung aktif dalam beberapa menit, kualitas 4K jernih.', time: 'Hari ini' },
+        { id: 't2', author: 'Nadia_K', product: 'Canva Pro Team', tag: '#ProsesKilat', comment: 'Admin ramah dan responsif, sangat membantu saat butuh edit mendadak.', time: 'Kemarin' },
+        { id: 't3', author: 'Dimas_A', product: 'CapCut Pro', tag: '#GaransiFull', comment: 'Aman dipakai ngedit video harian, panduan aturan jelas.', time: '2 hari lalu' },
+        { id: 't4', author: 'Salsa_Putri', product: 'Spotify Individual', tag: '#ProsesKilat', comment: 'Order auto langsung terhubung admin, akun langsung masuk tanpa ribet.', time: '2 hari lalu' },
+        { id: 't5', author: 'Fajar_M', product: 'YouTube Premium', tag: '#GaransiFull', comment: 'Sudah langganan beberapa kali, selalu lancar dan terpercaya.', time: '3 hari lalu' },
+        { id: 't6', author: 'Tari_W', product: 'Netflix Premium UHD', tag: '#ProsesKilat', comment: 'Proses cepat banget, cocok buat maraton film akhir pekan.', time: '4 hari lalu' },
+        { id: 't7', author: 'Bima_S', product: 'AI Assistant Plus', tag: '#GaransiFull', comment: 'Sangat ngebantu riset dan nulis, harga bersahabat.', time: '5 hari lalu' },
+        { id: 't8', author: 'Ayu_Lestari', product: 'Canva Pro Team', tag: '#ProsesKilat', comment: 'Invite masuk cepat, semua elemen pro terbuka normal.', time: '6 hari lalu' },
+        { id: 't9', author: 'Kevin_R', product: 'CapCut Pro', tag: '#NetflixAman', comment: 'Pelayanan konsisten bagus, pilihan paket fleksibel.', time: '1 minggu lalu' },
+        { id: 't10', author: 'Dina_P', product: 'YouTube Premium', tag: '#ProsesKilat', comment: 'Bebas iklan beneran bikin nyaman, admin fast respon.', time: '1 minggu lalu' }
+      ]
+    };
+
+    function cloneDefault() {
+      return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return cloneDefault();
+        const parsed = JSON.parse(raw);
+        return {
+          ...cloneDefault(),
+          ...parsed,
+          brand: { ...DEFAULT_STATE.brand, ...(parsed.brand || {}) },
+          waChannels: Array.isArray(parsed.waChannels) && parsed.waChannels.length === 3 ? parsed.waChannels : cloneDefault().waChannels,
+          socials: Array.isArray(parsed.socials) && parsed.socials.length ? parsed.socials : cloneDefault().socials,
+          products: Array.isArray(parsed.products) && parsed.products.length ? parsed.products : cloneDefault().products,
+          tags: Array.isArray(parsed.tags) && parsed.tags.length ? parsed.tags : cloneDefault().tags,
+          testimonials: Array.isArray(parsed.testimonials) && parsed.testimonials.length ? parsed.testimonials : cloneDefault().testimonials
+        };
+      } catch (_) {
+        return cloneDefault();
+      }
+    }
+
+    let state = loadState();
+    let activeCategory = 'Semua';
+    let activeTag = '#Semua';
+    let searchQuery = '';
+    let isAdminUnlocked = false;
+    let activeAdminTab = 'brand';
+    let selectedOrderProduct = null;
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {
+        // Ignore storage quota errors
+      }
+    }
+
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function normalizeTag(raw) {
+      const cleaned = String(raw || '').trim().replace(/\s+/g, '');
+      if (!cleaned) return '#ProsesKilat';
+      return cleaned.startsWith('#') ? cleaned : '#' + cleaned;
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toastBox');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+      clearTimeout(showToast._timer);
+      showToast._timer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 2600);
+    }
+
+    function getInitials(name) {
+      const parts = String(name || 'ZP').trim().split(/\s+/);
+      return ((parts[0]?.[0] || '') + (parts[1]?.[0] || parts[0]?.[1] || '')).toUpperCase() || 'ZP';
+    }
+
+    function renderBrand() {
+      document.title = `${state.brand.name} — APK & Akun Digital Premium`;
+      document.getElementById('brandLogoMark').textContent = getInitials(state.brand.name);
+      document.getElementById('brandNameText').textContent = state.brand.name;
+      document.getElementById('brandTaglineText').textContent = state.brand.tagline;
+      document.getElementById('footerBrandName').textContent = state.brand.name;
+      document.getElementById('bannerBadgeText').textContent = state.brand.bannerBadge;
+      document.getElementById('bannerTitleText').textContent = state.brand.bannerTitle;
+      document.getElementById('bannerDescText').textContent = state.brand.bannerDesc;
+
+      const badge = document.getElementById('storeStatusBadge');
+      if (state.brand.storeStatus === 'busy') {
+        badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span>Ramai / Antrean';
+      } else if (state.brand.storeStatus === 'closed') {
+        badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span>Tutup Sementara';
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+        badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>Buka &amp; Aktif';
+      }
+    }
+
+    function renderCategories() {
+      const cats = ['Semua', ...new Set(state.products.map(p => p.category).filter(Boolean))];
+      if (!cats.includes(activeCategory)) activeCategory = 'Semua';
+
+      const bar = document.getElementById('categoryFilterBar');
+      bar.innerHTML = cats.map(cat => {
+        const active = cat === activeCategory;
+        return `
+          <button type="button" data-cat="${escapeHtml(cat)}" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+            active
+              ? 'bg-emerald-500 text-slate-950'
+              : 'bg-cardbg hover:bg-cardhover text-slate-300 border border-line'
+          }">
+            ${escapeHtml(cat)}
+          </button>
+        `;
+      }).join('');
+
+      bar.querySelectorAll('.cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeCategory = btn.dataset.cat;
+          renderCategories();
+          renderProducts();
+        });
+      });
+    }
+
+    function renderProducts() {
+      const q = searchQuery.trim().toLowerCase();
+      const filtered = state.products.filter(p => {
+        const matchCat = activeCategory === 'Semua' || p.category === activeCategory;
+        const pkgText = (p.packages || []).map(pk => pk.label).join(' ').toLowerCase();
+        const matchSearch = !q ||
+          p.name.toLowerCase().includes(q) ||
+          (p.category || '').toLowerCase().includes(q) ||
+          (p.desc || '').toLowerCase().includes(q) ||
+          pkgText.includes(q);
+        return matchCat && matchSearch;
+      });
+
+      const grid = document.getElementById('productGrid');
+      if (!filtered.length) {
+        grid.innerHTML = `
+          <div class="col-span-full rounded-2xl border border-line bg-cardbg p-8 text-center text-sm text-slate-400">
+            Produk tidak ditemukan untuk filter atau pencarian saat ini.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(prod => {
+        const prices = (prod.packages || []).map(pk => Number(pk.price || 0));
+        const minPrice = prices.length ? Math.min(...prices) : 0;
+        const maxPrice = prices.length ? Math.max(...prices) : 0;
+        const priceLabel = minPrice === maxPrice ? formatRupiah(minPrice) : `${formatRupiah(minPrice)} – ${formatRupiah(maxPrice)}`;
+
+        return `
+          <article class="rounded-2xl border border-line bg-cardbg hover:bg-cardhover p-5 flex flex-col justify-between gap-4 transition">
+            <div class="space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/25">
+                  ${escapeHtml(prod.category || 'Umum')}
+                </span>
+                <span class="text-xs font-bold text-emerald-400">${priceLabel}</span>
+              </div>
+              <h3 class="text-base font-bold text-white">${escapeHtml(prod.name)}</h3>
+              <p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(prod.desc || '')}</p>
+              <div class="flex flex-wrap gap-1.5 pt-1">
+                ${(prod.packages || []).map(pk => `
+                  <span class="text-[11px] px-2 py-0.5 rounded-lg bg-slatebg border border-line text-slate-300">
+                    ${escapeHtml(pk.label)} · ${formatRupiah(pk.price)}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+
+            <button type="button" data-prod-id="${escapeHtml(prod.id)}" class="order-prod-btn w-full py-2.5 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+              Pesan via WhatsApp
+            </button>
+          </article>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.order-prod-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const prod = state.products.find(item => item.id === btn.dataset.prodId);
+          if (prod) openOrderModal(prod);
+        });
+      });
+    }
+
+    function renderTags() {
+      const allTags = Array.from(new Set([
+        '#Semua',
+        ...(state.tags || []),
+        ...state.testimonials.map(t => normalizeTag(t.tag))
+      ]));
+      if (!allTags.includes(activeTag)) activeTag = '#Semua';
+
+      const bar = document.getElementById('tagFilterBar');
+      bar.innerHTML = allTags.map(tag => {
+        const isAct = tag === activeTag;
+        return `
+          <button type="button" data-tag="${escapeHtml(tag)}" class="tag-filter-btn px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
+            isAct
+              ? 'bg-cyan-400 text-slate-950'
+              : 'bg-cardbg hover:bg-cardhover text-slate-300 border border-line'
+          }">
+            ${escapeHtml(tag)}
+          </button>
+        `;
+      }).join('');
+
+      bar.querySelectorAll('.tag-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeTag = btn.dataset.tag;
+          renderTags();
+          renderTestimonials();
+        });
+      });
+    }
+
+    function renderTestimonials() {
+      const list = activeTag === '#Semua'
+        ? state.testimonials
+        : state.testimonials.filter(t => normalizeTag(t.tag) === activeTag);
+
+      const grid = document.getElementById('testimonialGrid');
+      if (!list.length) {
+        grid.innerHTML = `
+          <div class="col-span-full rounded-2xl border border-line bg-cardbg p-8 text-center text-sm text-slate-400">
+            Belum ada testimoni untuk tagar ${escapeHtml(activeTag)}.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map(item => `
+        <article class="rounded-2xl border border-line bg-cardbg p-5 flex flex-col justify-between gap-3">
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-sm text-white">${escapeHtml(item.author)}</span>
+              <span class="text-xs font-semibold text-cyan-300">${escapeHtml(normalizeTag(item.tag))}</span>
+            </div>
+            <div class="text-xs font-semibold text-emerald-400">${escapeHtml(item.product)}</div>
+            <p class="text-sm text-slate-300 leading-relaxed">"${escapeHtml(item.comment)}"</p>
+          </div>
+          <div class="text-[11px] text-slate-500 pt-1">${escapeHtml(item.time || 'Baru saja')}</div>
+        </article>
+      `).join('');
+    }
+
+    function renderSocials() {
+      const visible = state.socials.filter(s => !s.hidden);
+      const grid = document.getElementById('socialGrid');
+
+      if (!visible.length) {
+        grid.innerHTML = `
+          <div class="col-span-full rounded-2xl border border-line bg-cardbg p-6 text-center text-sm text-slate-400">
+            Semua kanal media sosial sedang disembunyikan.
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = visible.map(soc => `
+        <a href="${escapeHtml(soc.url || '#')}" target="_blank" rel="noopener noreferrer" class="rounded-2xl border border-line bg-cardbg hover:bg-cardhover p-4 flex items-center justify-between gap-3 transition group">
+          <div class="min-w-0">
+            <div class="text-sm font-bold text-white group-hover:text-emerald-300 transition truncate">${escapeHtml(soc.name)}</div>
+            <div class="text-xs text-slate-400 truncate mt-0.5">${escapeHtml(soc.handle || '')}</div>
+          </div>
+          <span class="text-xs font-semibold text-emerald-400 shrink-0">Buka &rarr;</span>
+        </a>
+      `).join('');
+    }
+
+    function openOrderModal(product) {
+      selectedOrderProduct = product;
+      document.getElementById('orderModalProduct').textContent = product.name;
+      document.getElementById('orderModalMeta').textContent = `Kategori: ${product.category || 'Umum'}`;
+      document.getElementById('orderBuyerNote').value = '';
+
+      const pkgSelect = document.getElementById('orderPackageSelect');
+      const pkgs = product.packages && product.packages.length
+        ? product.packages
+        : [{ label: 'Paket Standar', price: 0 }];
+
+      pkgSelect.innerHTML = pkgs.map((pk, idx) => `
+        <option value="${idx}">${escapeHtml(pk.label)} — ${formatRupiah(pk.price)}</option>
+      `).join('');
+
+      renderWaChannelButtons();
+      const modal = document.getElementById('orderModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function renderWaChannelButtons() {
+      const container = document.getElementById('waChannelsList');
+      container.innerHTML = state.waChannels.map(ch => {
+        const cleanPhone = String(ch.phone || '').replace(/\D/g, '');
+        return `
+          <button type="button" data-phone="${escapeHtml(cleanPhone)}" data-admin-name="${escapeHtml(ch.name)}" class="wa-send-btn w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-slatebg hover:bg-emerald-500/15 border border-line hover:border-emerald-400/50 text-left transition">
+            <div>
+              <div class="text-sm font-bold text-white">${escapeHtml(ch.name)}</div>
+              <div class="text-xs text-slate-400">${escapeHtml(ch.note || 'WhatsApp')} · +${escapeHtml(cleanPhone)}</div>
+            </div>
+            <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500 text-slate-950 shrink-0">
+              Chat WA
+            </span>
+          </button>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.wa-send-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!selectedOrderProduct) return;
+          const pkgs = selectedOrderProduct.packages && selectedOrderProduct.packages.length
+            ? selectedOrderProduct.packages
+            : [{ label: 'Paket Standar', price: 0 }];
+          const idx = Number(document.getElementById('orderPackageSelect').value || 0);
+          const chosenPkg = pkgs[idx] || pkgs[0];
+          const note = document.getElementById('orderBuyerNote').value.trim();
+          const phone = btn.dataset.phone;
+
+          const lines = [
+            `Halo ${btn.dataset.adminName} (${state.brand.name}), saya mau order:`,
+            `• Produk: ${selectedOrderProduct.name}`,
+            `• Paket: ${chosenPkg.label} (${formatRupiah(chosenPkg.price)})`
+          ];
+          if (note) lines.push(`• Catatan: ${note}`);
+
+          const url = `https://wa.me/${phone}?text=${encodeURIComponent(lines.join('\n'))}`;
+          window.open(url, '_blank', 'noopener,noreferrer');
+        });
+      });
+    }
+
+    function closeOrderModal() {
+      const modal = document.getElementById('orderModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Admin Modal Controls
+    function openAdminAccess() {
+      if (isAdminUnlocked) {
+        openAdminPanel();
+        return;
+      }
+      document.getElementById('adminPasswordInput').value = '';
+      const modal = document.getElementById('adminLoginModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => document.getElementById('adminPasswordInput').focus(), 50);
+    }
+
+    function closeAdminLogin() {
+      const modal = document.getElementById('adminLoginModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function openAdminPanel() {
+      syncAdminForms();
+      const modal = document.getElementById('adminPanelModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAdminPanel() {
+      const modal = document.getElementById('adminPanelModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function switchAdminTab(tabName) {
+      activeAdminTab = tabName;
+      document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        const active = btn.dataset.adminTab === tabName;
+        btn.className = active
+          ? 'admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950'
+          : 'admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300';
+      });
+      document.querySelectorAll('.admin-tab-pane').forEach(pane => {
+        pane.classList.toggle('hidden', pane.id !== `adminTab-${tabName}`);
+      });
+    }
+
+    function syncAdminForms() {
+      document.getElementById('cfgBrandName').value = state.brand.name;
+      document.getElementById('cfgTagline').value = state.brand.tagline;
+      document.getElementById('cfgStoreStatus').value = state.brand.storeStatus;
+      document.getElementById('cfgBannerBadge').value = state.brand.bannerBadge;
+      document.getElementById('cfgBannerTitle').value = state.brand.bannerTitle;
+      document.getElementById('cfgBannerDesc').value = state.brand.bannerDesc;
+
+      renderAdminProducts();
+      renderAdminWaInputs();
+      renderAdminSocials();
+      renderAdminTestimonials();
+      switchAdminTab(activeAdminTab);
+    }
+
+    function renderAdminProducts() {
+      const list = document.getElementById('adminProductList');
+      list.innerHTML = state.products.map(prod => {
+        const firstPkg = prod.packages?.[0] || { label: '1 Bulan', price: 0 };
+        return `
+          <div class="rounded-xl border border-line bg-slatebg p-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-bold text-white">${escapeHtml(prod.name)} <span class="text-xs font-normal text-cyan-300">(${escapeHtml(prod.category)})</span></div>
+              <div class="text-xs text-slate-400">Paket awal: ${escapeHtml(firstPkg.label)} — ${formatRupiah(firstPkg.price)} · ${(prod.packages || []).length} paket</div>
+            </div>
+            <button type="button" data-del-prod="${escapeHtml(prod.id)}" class="del-prod-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30">
+              Hapus
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      list.querySelectorAll('.del-prod-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.products = state.products.filter(p => p.id !== btn.dataset.delProd);
+          saveState();
+          renderCategories();
+          renderProducts();
+          renderAdminProducts();
+          showToast('Produk dihapus.');
+        });
+      });
+    }
+
+    function renderAdminWaInputs() {
+      const wrap = document.getElementById('adminWaInputs');
+      wrap.innerHTML = state.waChannels.map((ch, idx) => `
+        <div class="rounded-xl border border-line bg-slatebg p-3.5 space-y-2.5">
+          <div class="text-xs font-bold text-emerald-400">Kanal WhatsApp #${idx + 1}</div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Label Admin</label>
+            <input type="text" data-wa-idx="${idx}" data-field="name" value="${escapeHtml(ch.name)}" class="wa-field w-full px-3 py-2 rounded-lg bg-cardbg border border-line text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Nomor WA (format 628...)</label>
+            <input type="text" data-wa-idx="${idx}" data-field="phone" value="${escapeHtml(ch.phone)}" class="wa-field w-full px-3 py-2 rounded-lg bg-cardbg border border-line text-xs text-white" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">Keterangan</label>
+            <input type="text" data-wa-idx="${idx}" data-field="note" value="${escapeHtml(ch.note || '')}" class="wa-field w-full px-3 py-2 rounded-lg bg-cardbg border border-line text-xs text-white" />
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAdminSocials() {
+      const list = document.getElementById('adminSocialList');
+      list.innerHTML = state.socials.map(soc => `
+        <div class="rounded-xl border border-line bg-slatebg p-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-bold text-white">${escapeHtml(soc.name)} <span class="text-xs font-normal text-slate-400">(${escapeHtml(soc.handle)})</span></div>
+            <div class="text-[11px] ${soc.hidden ? 'text-amber-300' : 'text-emerald-400'}">${soc.hidden ? 'Disembunyikan (Hidden)' : 'Tampil di Publik'}</div>
+          </div>
+          <button type="button" data-soc-id="${escapeHtml(soc.id)}" class="toggle-soc-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold ${
+            soc.hidden
+              ? 'bg-emerald-500 text-slate-950'
+              : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-line'
+          }">
+            ${soc.hidden ? 'Show' : 'Hide'}
+          </button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.toggle-soc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = state.socials.find(s => s.id === btn.dataset.socId);
+          if (!target) return;
+          target.hidden = !target.hidden;
+          saveState();
+          renderSocials();
+          renderAdminSocials();
+          showToast(`${target.name} ${target.hidden ? 'disembunyikan' : 'ditampilkan'}.`);
+        });
+      });
+    }
+
+    function renderAdminTestimonials() {
+      const list = document.getElementById('adminTestimonialList');
+      list.innerHTML = state.testimonials.map(item => `
+        <div class="rounded-xl border border-line bg-slatebg p-3.5 flex items-start justify-between gap-3">
+          <div class="space-y-1">
+            <div class="text-xs font-bold text-white">${escapeHtml(item.author)} · <span class="text-emerald-400">${escapeHtml(item.product)}</span> · <span class="text-cyan-300">${escapeHtml(normalizeTag(item.tag))}</span></div>
+            <p class="text-xs text-slate-300">"${escapeHtml(item.comment)}"</p>
+          </div>
+          <button type="button" data-del-testi="${escapeHtml(item.id)}" class="del-testi-btn px-3 py-1 rounded-lg text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 shrink-0">
+            Hapus
+          </button>
+        </div>
+      `).join('');
+
+      list.querySelectorAll('.del-testi-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.testimonials = state.testimonials.filter(t => t.id !== btn.dataset.delTesti);
+          saveState();
+          renderTags();
+          renderTestimonials();
+          renderAdminTestimonials();
+          showToast('Testimoni dihapus.');
+        });
+      });
+    }
+
+    function renderAll() {
+      renderBrand();
+      renderCategories();
+      renderProducts();
+      renderTags();
+      renderTestimonials();
+      renderSocials();
+    }
+
+    // Event Listeners
+    document.getElementById('yearSpan').textContent = String(new Date().getFullYear());
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchQuery = e.target.value;
+      renderProducts();
+    });
+
+    document.getElementById('quickOrderBtn').addEventListener('click', () => {
+      if (state.products.length) {
+        openOrderModal(state.products[0]);
+      } else {
+        window.location.href = '#katalog';
+      }
+    });
+
+    document.getElementById('closeOrderModalBtn').addEventListener('click', closeOrderModal);
+    document.getElementById('orderModal').addEventListener('click', e => {
+      if (e.target.id === 'orderModal') closeOrderModal();
+    });
+
+    document.getElementById('testiForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const author = document.getElementById('testiAuthor').value.trim();
+      const product = document.getElementById('testiProduct').value.trim();
+      const tag = normalizeTag(document.getElementById('testiTag').value);
+      const comment = document.getElementById('testiComment').value.trim();
+      if (!author || !product || !comment) return;
+
+      if (!state.tags.includes(tag)) {
+        state.tags.push(tag);
+      }
+
+      state.testimonials.unshift({
+        id: 't_' + Date.now(),
+        author,
+        product,
+        tag,
+        comment,
+        time: 'Baru saja'
+      });
+
+      activeTag = '#Semua';
+      saveState();
+      e.target.reset();
+      document.getElementById('testiTag').value = '#ProsesKilat';
+      renderTags();
+      renderTestimonials();
+      showToast('Testimoni berhasil ditambahkan!');
+    });
+
+    // Admin access via Ctrl+Shift+A, ?admin=1, or footer Admin button
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        openAdminAccess();
+      }
+    });
+
+    document.getElementById('footerAdminBtn').addEventListener('click', openAdminAccess);
+    document.getElementById('closeAdminLoginBtn').addEventListener('click', closeAdminLogin);
+    document.getElementById('closeAdminPanelBtn').addEventListener('click', closeAdminPanel);
+
+    document.getElementById('adminLoginForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const pass = document.getElementById('adminPasswordInput').value;
+      if (pass === ADMIN_PASS) {
+        isAdminUnlocked = true;
+        closeAdminLogin();
+        openAdminPanel();
+        showToast('Berhasil masuk ke Panel Admin.');
+      } else {
+        showToast('Password admin salah.');
+      }
+    });
+
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchAdminTab(btn.dataset.adminTab));
+    });
+
+    document.getElementById('brandSettingsForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!isAdminUnlocked) return;
+      state.brand = {
+        name: document.getElementById('cfgBrandName').value.trim() || 'Zhrs Project',
+        tagline: document.getElementById('cfgTagline').value.trim() || 'APK & Akun Digital Premium Terpercaya',
+        storeStatus: document.getElementById('cfgStoreStatus').value,
+        bannerBadge: document.getElementById('cfgBannerBadge').value.trim() || 'Proses Cepat & Bergaransi',
+        bannerTitle: document.getElementById('cfgBannerTitle').value.trim() || 'Belanja APK & Akun Premium Lebih Praktis di Zhrs Project',
+        bannerDesc: document.getElementById('cfgBannerDesc').value.trim() || 'Pilih produk favorit, tentukan paket atau durasi, lalu order langsung ke salah satu dari 3 Admin WhatsApp aktif.'
+      };
+      saveState();
+      renderBrand();
+      showToast('Pengaturan brand & banner disimpan.');
+    });
+
+    document.getElementById('addProductForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!isAdminUnlocked) return;
+      const name = document.getElementById('prodName').value.trim();
+      const category = document.getElementById('prodCategory').value.trim() || 'Umum';
+      const pkgLabel = document.getElementById('prodPackage').value.trim() || '1 Bulan';
+      const price = Number(document.getElementById('prodPrice').value || 0);
+      const desc = document.getElementById('prodDesc').value.trim();
+      if (!name) return;
+
+      state.products.unshift({
+        id: 'p_' + Date.now(),
+        name,
+        category,
+        desc,
+        packages: [{ label: pkgLabel, price }]
+      });
+
+      saveState();
+      e.target.reset();
+      renderCategories();
+      renderProducts();
+      renderAdminProducts();
+      showToast('Produk baru ditambahkan.');
+    });
+
+    document.getElementById('waChannelsForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!isAdminUnlocked) return;
+      document.querySelectorAll('.wa-field').forEach(inp => {
+        const idx = Number(inp.dataset.waIdx);
+        const field = inp.dataset.field;
+        if (state.waChannels[idx]) {
+          state.waChannels[idx][field] = inp.value.trim();
+        }
+      });
+      saveState();
+      showToast('3 kanal WhatsApp berhasil diperbarui.');
+    });
+
+    document.getElementById('resetAllDataBtn').addEventListener('click', () => {
+      if (!isAdminUnlocked) return;
+      state = cloneDefault();
+      activeCategory = 'Semua';
+      activeTag = '#Semua';
+      saveState();
+      renderAll();
+      syncAdminForms();
+      showToast('Semua data dikembalikan ke pengaturan default.');
+    });
+
+    renderAll();
+
+    if (new URLSearchParams(window.location.search).get('admin') === '1') {
+      openAdminAccess();
+    }
+  </script>
+</body>
+</html>

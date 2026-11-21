@@ -111,6 +111,17 @@
     #productGrid article * {
       color: #0f172a !important;
     }
+    #adminTab-prices .product-logo {
+      width: 64px;
+      height: 64px;
+      flex: 0 0 64px;
+      border-radius: 14px;
+    }
+    #adminTab-prices .product-logo img {
+      width: 52px;
+      height: 52px;
+      border-radius: 11px;
+    }
     .product-logo {
       width: 44px;
       height: 44px;
@@ -136,6 +147,8 @@
     .logo-youtube img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
     .logo-ai { background: #fff; width: 44px; height: 44px; flex-basis: 44px; padding: 4px; overflow: hidden; }
     .logo-ai img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
+    .logo-custom { background: #fff; width: 52px; height: 52px; flex: 0 0 52px; padding: 3px; overflow: hidden; }
+    .logo-custom img { width: 100%; height: 100%; object-fit: contain; }
     #brandLogoMark {
       width: 52px;
       height: 52px;
@@ -213,6 +226,17 @@
       background-color: #10b981 !important;
       color: #0f172a !important;
       border-color: #059669 !important;
+    }
+    #adminProductList .save-product-prices-btn {
+      background-color: #059669 !important;
+      border-color: #047857 !important;
+      color: #ffffff !important;
+    }
+    #adminProductList .save-product-prices-btn:disabled {
+      background-color: #e2e8f0 !important;
+      border-color: #cbd5e1 !important;
+      color: #64748b !important;
+      cursor: not-allowed;
     }
     #testimoni,
     #testimonialGrid,
@@ -648,6 +672,7 @@
       <div class="flex flex-wrap gap-2 border-b border-line pb-3">
         <button type="button" data-admin-tab="brand" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500 text-slate-950">Brand &amp; Banner</button>
         <button type="button" data-admin-tab="products" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Katalog Produk</button>
+        <button type="button" data-admin-tab="prices" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Edit Harga</button>
         <button type="button" data-admin-tab="wa" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">3 Kanal WhatsApp</button>
         <button type="button" data-admin-tab="social" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Media Sosial (Hide)</button>
         <button type="button" data-admin-tab="testimonials" class="admin-tab-btn px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-300">Kelola Testimoni</button>
@@ -729,6 +754,12 @@
               <input id="prodStock" type="number" required min="0" value="0" placeholder="Stok tersedia" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
               <input id="prodSold" type="number" required min="0" value="0" placeholder="Sudah terjual" class="px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
               <input id="prodDesc" type="text" placeholder="Deskripsi singkat produk..." class="xl:col-span-2 px-3 py-2 rounded-xl bg-cardbg border border-line text-sm text-white" />
+              <div class="xl:col-span-2">
+                <label for="prodImage" class="block text-xs font-medium text-slate-700 mb-1">Logo / Gambar Produk (opsional)</label>
+                <input id="prodImage" type="file" accept="image/jpeg,image/png,image/webp" class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-sm text-slate-900" />
+                <p class="mt-1 text-[11px] text-slate-500">Format JPG, PNG, atau WEBP; maksimal 10 MB. Gambar dikompres dan disimpan bersama produk di browser ini.</p>
+                <img id="prodImagePreview" alt="Pratinjau gambar produk" class="hidden mt-2 h-20 w-20 rounded-xl border border-slate-300 bg-white object-contain p-1" />
+              </div>
               <button type="submit" class="xl:col-span-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
                 + Tambah Produk
               </button>
@@ -748,6 +779,15 @@
             Simpan Data
           </button>
         </div>
+      </div>
+
+      <!-- Tab 3: Edit Price -->
+      <div id="adminTab-prices" class="admin-tab-pane hidden space-y-4">
+        <div>
+          <h3 class="text-sm font-extrabold text-slate-950">EDIT HARGA PRODUK</h3>
+          <p class="mt-1 text-xs text-slate-500">Ubah harga setiap paket atau durasi, lalu simpan per produk.</p>
+        </div>
+        <div id="adminPriceList" class="space-y-3 max-h-[70vh] overflow-y-auto pr-1"></div>
       </div>
 
       <!-- Tab 3: 3 WhatsApp Channels -->
@@ -951,16 +991,14 @@
       return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
     }
 
-    async function compressTestimonialPhoto(file) {
+    async function compressImage(file, { maxDimension = 1200, maxDataLength = 600000 } = {}) {
       if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
         throw new Error('Pilih foto berformat JPG, PNG, atau WEBP.');
       }
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('Ukuran foto maksimal 10 MB.');
       }
-
       const bitmap = await createImageBitmap(file);
-      const maxDimension = 1200;
       const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement('canvas');
       canvas.width = Math.max(1, Math.round(bitmap.width * scale));
@@ -978,7 +1016,7 @@
       for (let attempt = 0; attempt < 6; attempt += 1) {
         const quality = Math.max(0.35, 0.82 - attempt * 0.1);
         dataUrl = canvas.toDataURL('image/jpeg', quality);
-        if (dataUrl.length <= 600000) break;
+        if (dataUrl.length <= maxDataLength) break;
         canvas.width = Math.max(1, Math.round(canvas.width * 0.8));
         canvas.height = Math.max(1, Math.round(canvas.height * 0.8));
         context.fillStyle = '#ffffff';
@@ -986,7 +1024,7 @@
         context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       }
       bitmap.close();
-      if (dataUrl.length > 600000) throw new Error('Foto terlalu besar untuk disimpan. Coba pilih foto yang lebih kecil.');
+      if (dataUrl.length > maxDataLength) throw new Error('Gambar terlalu besar untuk disimpan. Coba pilih gambar yang lebih kecil.');
       return dataUrl;
     }
 
@@ -1000,6 +1038,9 @@
     }
 
     function getProductLogo(prod) {
+      if (prod?.image) {
+        return `<span class="product-logo logo-custom" aria-label="Logo ${escapeHtml(prod.name)}"><img src="${escapeHtml(prod.image)}" alt="${escapeHtml(prod.name)}" /></span>`;
+      }
       const name = String(prod?.name || '').toLowerCase();
       if (prod?.id === 'p_nf' || name.includes('netflix')) {
         return `<span class="product-logo logo-netflix" aria-label="Logo Netflix"><img src="${EMBEDDED_ASSETS['netflix-logo.png']}" alt="Netflix" /></span>`;
@@ -1467,7 +1508,110 @@
       switchAdminTab(activeAdminTab);
     }
 
+    function renderAdminPrices() {
+      const list = document.getElementById('adminPriceList');
+      if (!list) return;
+
+      list.innerHTML = state.products.map(prod => {
+        const packages = Array.isArray(prod.packages) ? prod.packages : [];
+        return `
+          <div class="rounded-xl border border-line bg-slatebg p-4 space-y-3">
+            <div class="flex items-center gap-3">
+              ${getProductLogo(prod)}
+              <div class="min-w-0">
+                <div class="text-sm font-bold text-slate-950">${escapeHtml(prod.name)}</div>
+                <div class="text-xs text-slate-500">${escapeHtml(prod.category)} - ${packages.length} paket harga</div>
+              </div>
+            </div>
+            ${packages.length
+              ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  ${packages.map((pkg, index) => `
+                    <label class="text-[11px] font-semibold text-slate-600">
+                      ${escapeHtml(pkg.label || `Paket ${index + 1}`)}
+                      <div class="mt-1 flex items-center rounded-lg border border-slate-300 bg-white overflow-hidden">
+                        <span class="px-2.5 py-2 text-xs text-slate-500 border-r border-slate-300">Rp</span>
+                        <input type="number" min="0" step="1" required
+                          data-price-prod="${escapeHtml(prod.id)}"
+                          data-package-index="${index}"
+                          data-saved-price="${Math.max(0, Number(pkg.price || 0))}"
+                          value="${Math.max(0, Number(pkg.price || 0))}"
+                          class="price-prod-input min-w-0 flex-1 px-2.5 py-2 text-xs text-slate-900 outline-none"
+                          aria-label="Harga ${escapeHtml(pkg.label || `Paket ${index + 1}`)} ${escapeHtml(prod.name)}" />
+                      </div>
+                    </label>
+                  `).join('')}
+                </div>
+                <div class="flex justify-end">
+                  <button type="button" data-save-prices-prod="${escapeHtml(prod.id)}" disabled
+                    class="save-product-prices-btn px-4 py-2 rounded-lg text-xs font-semibold border transition">
+                    Harga Tersimpan
+                  </button>
+                </div>`
+              : '<div class="text-xs text-slate-500">Produk ini belum memiliki paket harga.</div>'}
+          </div>
+        `;
+      }).join('');
+
+      const updatePriceSaveButton = productId => {
+        const button = Array.from(list.querySelectorAll('.save-product-prices-btn'))
+          .find(item => item.dataset.savePricesProd === productId);
+        if (!button) return;
+        const priceInputs = Array.from(list.querySelectorAll('.price-prod-input'))
+          .filter(input => input.dataset.priceProd === productId);
+        const changed = priceInputs.some(input => input.value !== input.dataset.savedPrice);
+        button.disabled = !changed;
+        button.textContent = changed ? 'Simpan Harga' : 'Harga Tersimpan';
+      };
+
+      list.querySelectorAll('.price-prod-input').forEach(input => {
+        input.addEventListener('input', () => updatePriceSaveButton(input.dataset.priceProd));
+      });
+
+      list.querySelectorAll('.save-product-prices-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          if (!isAdminUnlocked) return;
+          const product = state.products.find(item => item.id === button.dataset.savePricesProd);
+          if (!product) return;
+
+          const priceInputs = Array.from(list.querySelectorAll('.price-prod-input'))
+            .filter(input => input.dataset.priceProd === product.id);
+          const invalidInput = priceInputs.find(input =>
+            !input.checkValidity() || !Number.isSafeInteger(Number(input.value))
+          );
+          if (invalidInput) {
+            invalidInput.reportValidity();
+            showToast('Masukkan harga berupa bilangan bulat 0 atau lebih.');
+            return;
+          }
+
+          const previousPrices = product.packages.map(pkg => Number(pkg.price || 0));
+          priceInputs.forEach(input => {
+            const packageIndex = Number(input.dataset.packageIndex);
+            if (product.packages[packageIndex]) {
+              product.packages[packageIndex].price = Number(input.value);
+            }
+          });
+
+          if (!saveState()) {
+            product.packages.forEach((pkg, index) => {
+              pkg.price = previousPrices[index];
+            });
+            showToast('Harga gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+            return;
+          }
+
+          priceInputs.forEach(input => {
+            input.dataset.savedPrice = input.value;
+          });
+          renderProducts();
+          renderAdminProducts();
+          showToast(`Harga ${product.name} berhasil disimpan.`);
+        });
+      });
+    }
+
     function renderAdminProducts() {
+      renderAdminPrices();
       renderTestimonialProductOptions();
       const list = document.getElementById('adminProductList');
       const totalSold = state.products.reduce((sum, prod) => sum + Math.max(0, Number(prod.sold || 0)), 0);
@@ -1506,26 +1650,28 @@
       }).join('');
 
       list.innerHTML = state.products.map(prod => {
-        const firstPkg = prod.packages?.[0] || { label: '1 Bulan', price: 0 };
+        const packages = Array.isArray(prod.packages) ? prod.packages : [];
         return `
-          <div class="rounded-xl border border-line bg-slatebg p-3.5 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              ${getProductLogo(prod)}
-              <div>
-                <div class="text-sm font-bold text-white">${escapeHtml(prod.name)} <span class="text-xs font-normal text-cyan-300">(${escapeHtml(prod.category)})</span></div>
-                <div class="text-xs text-slate-400">Paket awal: ${escapeHtml(firstPkg.label)} — ${formatRupiah(firstPkg.price)} · ${(prod.packages || []).length} paket</div>
+          <div class="rounded-xl border border-line bg-slatebg p-3.5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                ${getProductLogo(prod)}
+                <div class="min-w-0">
+                  <div class="text-sm font-bold text-white">${escapeHtml(prod.name)} <span class="text-xs font-normal text-cyan-300">(${escapeHtml(prod.category)})</span></div>
+                  <div class="text-xs text-slate-400">${packages.length} paket harga</div>
+                </div>
               </div>
-            </div>
-            <div class="flex flex-wrap items-end gap-2">
-              <label class="text-[11px] text-slate-400">Terjual
-                <input type="number" min="0" step="1" data-sold-prod="${escapeHtml(prod.id)}" data-before-sold="${Math.max(0, Number(prod.sold || 0))}" data-before-stock="${Math.max(0, Number(prod.stock || 0))}" value="${Math.max(0, Number(prod.sold || 0))}" class="sold-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
-              </label>
-              <label class="text-[11px] text-slate-400">Stok
-                <input type="number" min="0" step="1" data-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="stock-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
-              </label>
-              <button type="button" data-reset-prod="${escapeHtml(prod.id)}" class="reset-prod-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600">
-                Reset
-              </button>
+              <div class="flex flex-wrap items-end gap-2">
+                <label class="text-[11px] text-slate-400">Terjual
+                  <input type="number" min="0" step="1" data-sold-prod="${escapeHtml(prod.id)}" data-before-sold="${Math.max(0, Number(prod.sold || 0))}" data-before-stock="${Math.max(0, Number(prod.stock || 0))}" value="${Math.max(0, Number(prod.sold || 0))}" class="sold-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
+                </label>
+                <label class="text-[11px] text-slate-400">Stok
+                  <input type="number" min="0" step="1" data-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="stock-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
+                </label>
+                <button type="button" data-reset-prod="${escapeHtml(prod.id)}" class="reset-prod-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600">
+                  Reset
+                </button>
+              </div>
             </div>
           </div>
         `;
@@ -1593,14 +1739,18 @@
     document.getElementById('saveProductStockBtn').addEventListener('click', () => {
       if (!isAdminUnlocked) return;
 
-      const inputs = Array.from(document.querySelectorAll('#adminProductList input[type="number"]'));
+      const inputs = Array.from(document.querySelectorAll('#adminProductList .sold-prod-input, #adminProductList .stock-prod-input'));
       const invalidInput = inputs.find(input => !input.checkValidity() || !Number.isSafeInteger(Number(input.value)));
       if (invalidInput) {
         invalidInput.reportValidity();
-        showToast('Masukkan jumlah stok dan terjual berupa bilangan bulat 0 atau lebih.');
+        showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
         return;
       }
 
+      const previousProducts = state.products.map(product => ({
+        ...product,
+        packages: Array.isArray(product.packages) ? product.packages.map(pkg => ({ ...pkg })) : []
+      }));
       state.products.forEach(product => {
         const soldInput = document.querySelector(`[data-sold-prod="${product.id}"]`);
         const stockInput = document.querySelector(`[data-stock-prod="${product.id}"]`);
@@ -1609,7 +1759,13 @@
         product.stock = Number(stockInput.value);
       });
 
-      saveState();
+      if (!saveState()) {
+        state.products = previousProducts;
+        renderProducts();
+        renderAdminProducts();
+        showToast('Data gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+        return;
+      }
       renderProducts();
       renderAdminProducts();
       showToast('Data stok dan penjualan berhasil disimpan.');
@@ -1801,6 +1957,30 @@
     const testiPhotoInput = document.getElementById('testiPhoto');
     const testiPhotoPreview = document.getElementById('testiPhotoPreview');
     let testiPhotoPreviewUrl = '';
+    const prodImageInput = document.getElementById('prodImage');
+    const prodImagePreview = document.getElementById('prodImagePreview');
+    let prodImagePreviewUrl = '';
+
+    prodImageInput.addEventListener('change', () => {
+      if (prodImagePreviewUrl) URL.revokeObjectURL(prodImagePreviewUrl);
+      prodImagePreviewUrl = '';
+      prodImagePreview.classList.add('hidden');
+      prodImagePreview.removeAttribute('src');
+
+      const file = prodImageInput.files[0];
+      if (!file) return;
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+        prodImageInput.value = '';
+        showToast(file.size > 10 * 1024 * 1024
+          ? 'Ukuran gambar produk maksimal 10 MB.'
+          : 'Pilih gambar berformat JPG, PNG, atau WEBP.');
+        return;
+      }
+
+      prodImagePreviewUrl = URL.createObjectURL(file);
+      prodImagePreview.src = prodImagePreviewUrl;
+      prodImagePreview.classList.remove('hidden');
+    });
 
     testiPhotoInput.addEventListener('change', () => {
       if (testiPhotoPreviewUrl) URL.revokeObjectURL(testiPhotoPreviewUrl);
@@ -1834,7 +2014,7 @@
       let photo = '';
       try {
         const file = testiPhotoInput.files[0];
-        if (file) photo = await compressTestimonialPhoto(file);
+        if (file) photo = await compressImage(file);
       } catch (error) {
         showToast(error.message || 'Foto tidak dapat diproses.');
         return;
@@ -1957,7 +2137,7 @@
       showToast('Pengaturan brand & banner disimpan.');
     });
 
-    document.getElementById('addProductForm').addEventListener('submit', e => {
+    document.getElementById('addProductForm').addEventListener('submit', async e => {
       e.preventDefault();
       if (!isAdminUnlocked) return;
       const name = document.getElementById('prodName').value.trim();
@@ -1969,18 +2149,37 @@
       const desc = document.getElementById('prodDesc').value.trim();
       if (!name) return;
 
-      state.products.unshift({
+      let image = '';
+      try {
+        const file = prodImageInput.files[0];
+        if (file) image = await compressImage(file, { maxDimension: 512, maxDataLength: 300000 });
+      } catch (error) {
+        showToast(error.message || 'Gambar produk tidak dapat diproses.');
+        return;
+      }
+
+      const product = {
         id: 'p_' + Date.now(),
         name,
         category,
         desc,
         stock,
         sold,
+        image,
         packages: [{ label: pkgLabel, price }]
-      });
+      };
+      state.products.unshift(product);
 
-      saveState();
+      if (!saveState()) {
+        state.products = state.products.filter(item => item.id !== product.id);
+        showToast('Produk gagal disimpan. Ruang penyimpanan browser mungkin penuh.');
+        return;
+      }
       e.target.reset();
+      if (prodImagePreviewUrl) URL.revokeObjectURL(prodImagePreviewUrl);
+      prodImagePreviewUrl = '';
+      prodImagePreview.removeAttribute('src');
+      prodImagePreview.classList.add('hidden');
       renderCategories();
       renderProducts();
       renderTestimonialProductOptions();

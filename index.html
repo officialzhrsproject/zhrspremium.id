@@ -983,9 +983,9 @@
             stock: 18,
             sold: 36,
             packages: [
-              { label: '1 Bulan', price: 15000 },
-              { label: '3 Bulan', price: 35000 },
-              { label: '1 Tahun', price: 75000 }
+              { label: '1 Hari', price: 0 },
+              { label: '7 Hari', price: 0 },
+              { label: '1 Bulan', price: 15000 }
             ]
           },
           {
@@ -996,9 +996,9 @@
             stock: 20,
             sold: 29,
             packages: [
+              { label: '1 Hari', price: 0 },
               { label: '7 Hari', price: 12000 },
-              { label: '1 Bulan', price: 25000 },
-              { label: '3 Bulan', price: 55000 }
+              { label: '1 Bulan', price: 25000 }
             ]
           },
           {
@@ -1009,8 +1009,9 @@
             stock: 22,
             sold: 33,
             packages: [
-              { label: '1 Bulan', price: 20000 },
-              { label: '2 Bulan', price: 38000 }
+              { label: '1 Hari', price: 0 },
+              { label: '7 Hari', price: 0 },
+              { label: '1 Bulan', price: 20000 }
             ]
           },
           {
@@ -1021,8 +1022,9 @@
             stock: 15,
             sold: 27,
             packages: [
-              { label: '1 Bulan (Individu)', price: 18000 },
-              { label: '1 Bulan (Family)', price: 28000 }
+              { label: '1 Hari', price: 0 },
+              { label: '7 Hari', price: 0 },
+              { label: '1 Bulan', price: 18000 }
             ]
           },
           {
@@ -1033,6 +1035,7 @@
             stock: 12,
             sold: 19,
             packages: [
+              { label: '1 Hari', price: 0 },
               { label: '7 Hari', price: 30000 },
               { label: '1 Bulan', price: 85000 }
             ]
@@ -1090,6 +1093,7 @@
         stock: 0,
         sold: 0,
         packages: [
+          { label: '1 Hari', price: 0 },
           { label: '7 Hari', price: 0 },
           { label: '1 Bulan', price: 0 }
         ]
@@ -1111,6 +1115,55 @@
 
       function normalizeProductDurations(product) {
         const packages = Array.isArray(product.packages) ? product.packages : [];
+        const standardDurationNames = new Set([
+          'Canva Pro Team',
+          'CapCut Pro',
+          'Spotify Individual',
+          'YouTube Premium',
+          'AI Assistant Plus',
+          'Disney+',
+          'DramaBox',
+          'HBO Max',
+          'iQIYI',
+          'Loklok',
+          'Meitu',
+          'Picsart',
+          'Prime Video',
+          'Scribd',
+          'Vidio',
+          'Vision+',
+          'Viu',
+          'VSCO',
+          'WeTV',
+          'Wink',
+          'Youku',
+          'Zoom',
+          'Crunchyroll',
+          'GagaOOLala',
+          'Duolingo',
+          'IbisPaint',
+          'Melolo',
+          'Grammarly',
+          'ShortMax'
+        ]);
+
+        if (standardDurationNames.has(String(product.name || '').trim())) {
+          const standardPackages = STANDARD_PACKAGE_LABELS.map(label => {
+            const matchingPackage = packages.find(pkg =>
+              getStandardPackageLabel(pkg.label) === label
+            );
+            return {
+              label,
+              price: Math.max(0, Number(matchingPackage?.price || 0))
+            };
+          });
+          return {
+            ...product,
+            packages: standardPackages,
+            legacyPackages: []
+          };
+        }
+
         return {
           ...product,
           packages: packages.map(pkg => ({
@@ -1293,6 +1346,11 @@
           .trim();
       }
 
+      function canonicalDuration(value) {
+        return getStandardPackageLabel(String(value || '').trim()) ||
+          String(value || '').trim();
+      }
+
       function readDirectGoogleSheet(csvText) {
         const rows = parseCsvRows(csvText);
         if (rows.length < 2) return [];
@@ -1321,7 +1379,7 @@
 
         return rows.slice(1).map(row => ({
           name: String(row[nameIndex] || '').trim(),
-          duration: String(row[durationIndex] || '').trim(),
+          duration: canonicalDuration(row[durationIndex]),
           price: parseIndonesianPrice(row[priceIndex])
         })).filter(row => row.name && row.duration);
       }
@@ -1345,7 +1403,7 @@
                   const prices = row.prices || {};
                   return Object.keys(prices).map(duration => ({
                     name: row.name || '',
-                    duration,
+                    duration: canonicalDuration(duration),
                     price: parseIndonesianPrice(prices[duration])
                   }));
                 }).flat();

@@ -1401,6 +1401,145 @@
           .trim();
       }
 
+      function readGoogleSheetSocials(csvText) {
+        const rows = parseCsvRows(csvText);
+        let platformIndex = -1;
+        let accountIndex = -1;
+        let statusIndex = -1;
+        let headerRowIndex = -1;
+
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const headers = rows[rowIndex].map(normalizeSheetHeader);
+          const candidatePlatformIndex = headers.findIndex(header =>
+            header === 'nama platform' || header === 'platform'
+          );
+          const candidateAccountIndex = headers.findIndex(header =>
+            ['username tautan', 'username', 'tautan profil', 'tautan'].includes(header)
+          );
+          const candidateStatusIndex = headers.findIndex(header =>
+            ['status', 'aktif', 'on off'].includes(header)
+          );
+
+          if (candidatePlatformIndex >= 0 && candidateAccountIndex >= 0) {
+            platformIndex = candidatePlatformIndex;
+            accountIndex = candidateAccountIndex;
+            statusIndex = candidateStatusIndex;
+            headerRowIndex = rowIndex;
+            break;
+          }
+        }
+
+        if (headerRowIndex < 0) return [];
+
+        const socialMap = {
+          instagram: 'soc_ig',
+          telegram: 'soc_tg',
+          tiktok: 'soc_tt',
+          'saluran whatsapp': 'soc_wa',
+          whatsapp: 'soc_wa'
+        };
+        const defaultUrls = {
+          instagram: 'https://instagram.com',
+          telegram: 'https://t.me',
+          tiktok: 'https://tiktok.com',
+          whatsapp: 'https://whatsapp.com'
+        };
+        const socials = [];
+
+        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          if (!row) continue;
+          const platformName = String(row[platformIndex] || '').trim();
+          const accountValue = String(row[accountIndex] || '').trim();
+          if (!platformName) continue;
+
+          const normalizedPlatform = normalizeProductName(platformName);
+          if (/^total platform/i.test(platformName)) break;
+          const id = socialMap[normalizedPlatform];
+          if (!id) continue;
+
+          const status = statusIndex >= 0
+            ? String(row[statusIndex] || '').trim().toUpperCase()
+            : 'ON';
+          let handle = accountValue;
+          let url = '';
+
+          if (/^https?:\/\//i.test(accountValue)) {
+            url = accountValue;
+          } else if (normalizedPlatform === 'instagram') {
+            handle = accountValue || '@zhrsproject.id';
+            url = `https://instagram.com/${handle.replace(/^@/, '')}`;
+          } else if (normalizedPlatform === 'telegram') {
+            handle = accountValue || 't.me/zhrsproject';
+            url = handle.startsWith('t.me/')
+              ? `https://${handle}`
+              : `https://t.me/${handle.replace(/^@/, '')}`;
+          } else if (normalizedPlatform === 'tiktok') {
+            handle = accountValue || '@zhrs.project';
+            url = `https://tiktok.com/${handle.replace(/^@/, '@')}`;
+          } else if (normalizedPlatform.includes('whatsapp')) {
+            handle = accountValue || 'Update Stok & Promo';
+            url = defaultUrls.whatsapp;
+          }
+
+          socials.push({
+            id,
+            name: platformName,
+            handle,
+            url: url || defaultUrls[normalizedPlatform] || '',
+            hidden: !['ON', 'ACTIVE', 'AKTIF', 'TRUE', 'SHOW'].includes(status)
+          });
+          if (socials.length === 4) break;
+        }
+        return socials;
+      }
+
+      async function syncFromGoogleSheetSocials() {
+        const csvUrls = [
+          `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
+          `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
+        ];
+
+        for (const csvUrl of csvUrls) {
+          try {
+            const response = await fetch(csvUrl, {
+              method: 'GET',
+              mode: 'cors',
+              cache: 'no-store'
+            });
+            if (!response.ok) continue;
+
+            const socials = readGoogleSheetSocials(await response.text());
+            if (!socials.length) continue;
+
+            let changed = false;
+            socials.forEach(sheetSocial => {
+              const current = state.socials.find(social => social.id === sheetSocial.id);
+              if (!current) {
+                state.socials.push(sheetSocial);
+                changed = true;
+                return;
+              }
+              ['name', 'handle', 'url', 'hidden'].forEach(field => {
+                if (current[field] !== sheetSocial[field]) {
+                  current[field] = sheetSocial[field];
+                  changed = true;
+                }
+              });
+            });
+
+            if (changed) {
+              saveState();
+              renderSocials();
+              if (!document.getElementById('adminSocialList').closest('.admin-tab-pane').classList.contains('hidden')) {
+                renderAdminSocials();
+              }
+            }
+            return;
+          } catch (_) {}
+        }
+      }
+
       async function syncFromGoogleSheetWhatsApp() {
         const csvUrls = [
           `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
@@ -2867,8 +3006,10 @@
       renderAll();
       syncFromGoogleSheet();
       syncFromGoogleSheetWhatsApp();
+      syncFromGoogleSheetSocials();
       window.setInterval(syncFromGoogleSheet, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetWhatsApp, GOOGLE_SHEET_POLL_MS);
+      window.setInterval(syncFromGoogleSheetSocials, GOOGLE_SHEET_POLL_MS);
       window.setInterval(renderStoreStatus, 60000);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) renderStoreStatus();

@@ -212,10 +212,10 @@
     #adminTab-products h3 {
       color: #0f172a !important;
     }
-    #adminProductList .reset-prod-btn {
-      background-color: #f59e0b !important;
-      color: #ffffff !important;
-      border-color: #d97706 !important;
+    #adminProductList .save-stock-btn {
+      background-color: #10b981 !important;
+      color: #0f172a !important;
+      border-color: #059669 !important;
     }
     #adminProductDeleteList .delete-prod-btn {
       background-color: #dc2626 !important;
@@ -1668,8 +1668,8 @@
                 <label class="text-[11px] text-slate-400">Stok
                   <input type="number" min="0" step="1" data-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="stock-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
                 </label>
-                <button type="button" data-reset-prod="${escapeHtml(prod.id)}" class="reset-prod-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 border border-amber-600">
-                  Reset
+                <button type="button" data-save-stock-prod="${escapeHtml(prod.id)}" class="save-stock-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-600">
+                  Simpan
                 </button>
               </div>
             </div>
@@ -1719,19 +1719,44 @@
         });
       });
 
-      list.querySelectorAll('.reset-prod-btn').forEach(btn => {
+      list.querySelectorAll('.save-stock-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const target = state.products.find(p => p.id === btn.dataset.resetProd);
+          if (!isAdminUnlocked) return;
+          const target = state.products.find(p => p.id === btn.dataset.saveStockProd);
           if (!target) return;
-          const confirmed = window.confirm(`Reset stok dan jumlah terjual untuk ${target.name} menjadi 0?`);
-          if (!confirmed) return;
 
-          target.stock = 0;
-          target.sold = 0;
-          saveState();
+          const soldInput = list.querySelector(`[data-sold-prod="${target.id}"]`);
+          const stockInput = list.querySelector(`[data-stock-prod="${target.id}"]`);
+          if (!soldInput || !stockInput) return;
+
+          if (!soldInput.checkValidity() || !stockInput.checkValidity()) {
+            (!soldInput.checkValidity() ? soldInput : stockInput).reportValidity();
+            showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+            return;
+          }
+
+          const nextSold = Number(soldInput.value);
+          const nextStock = Number(stockInput.value);
+          if (!Number.isSafeInteger(nextSold) || !Number.isSafeInteger(nextStock)) {
+            showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+            return;
+          }
+
+          const previousSold = target.sold;
+          const previousStock = target.stock;
+          target.sold = nextSold;
+          target.stock = nextStock;
+
+          if (!saveState()) {
+            target.sold = previousSold;
+            target.stock = previousStock;
+            showToast('Stok gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+            return;
+          }
+
           renderProducts();
           renderAdminProducts();
-          showToast(`Stok dan penjualan ${target.name} direset ke 0.`);
+          showToast(`Stok ${target.name} berhasil disimpan.`);
         });
       });
     }

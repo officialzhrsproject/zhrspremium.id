@@ -900,7 +900,7 @@
               <h3 class="text-sm font-extrabold text-slate-950">EDIT HARGA PRODUK</h3>
               <p class="mt-1 text-xs text-slate-500">Atur harga tiap durasi, lalu simpan per produk.</p>
             </div>
-            <div class="price-section-summary">3 durasi standar</div>
+            <div class="price-section-summary">Durasi sesuai Excel</div>
           </div>
           <div id="adminPriceList" class="space-y-3 max-h-[70vh] overflow-y-auto pr-1"></div>
         </div>
@@ -1104,6 +1104,12 @@
       DEFAULT_STATE.products.push(...NEW_CATALOG_PRODUCTS);
 
       const STANDARD_PACKAGE_LABELS = ['1 Hari', '7 Hari', '1 Bulan'];
+      const NETFLIX_PACKAGE_LABELS = [
+        '1 Hari',
+        '7 Hari',
+        '1 Bulan (Sharing)',
+        '1 Bulan (Private)'
+      ];
 
       function getStandardPackageLabel(label) {
         const match = String(label || '').trim().match(/^(1\s*Hari|7\s*Hari|1\s*Bulan)(?=$|[\s(])/i);
@@ -1117,6 +1123,24 @@
 
       function normalizeProductDurations(product) {
         const packages = Array.isArray(product.packages) ? product.packages : [];
+
+        if (String(product.name || '').trim() === 'Netflix Premium UHD') {
+          const netflixPackages = NETFLIX_PACKAGE_LABELS.map(label => {
+            const matchingPackage = packages.find(pkg =>
+              String(pkg.label || '').trim().toLowerCase() === label.toLowerCase()
+            );
+            return {
+              label,
+              price: Math.max(0, Number(matchingPackage?.price || 0))
+            };
+          });
+          return {
+            ...product,
+            packages: netflixPackages,
+            legacyPackages: []
+          };
+        }
+
         const standardDurationNames = new Set([
           'Canva Pro Team',
           'CapCut Pro',
@@ -1467,8 +1491,10 @@
       }
 
       function canonicalDuration(value) {
-        return getStandardPackageLabel(String(value || '').trim()) ||
-          String(value || '').trim();
+        const duration = String(value || '').trim();
+        if (/^1\s*bulan\s*\(\s*sharing\s*\)$/i.test(duration)) return '1 Bulan (Sharing)';
+        if (/^1\s*bulan\s*\(\s*private\s*\)$/i.test(duration)) return '1 Bulan (Private)';
+        return getStandardPackageLabel(duration) || duration;
       }
 
       function readDirectGoogleSheet(csvText) {
@@ -1565,12 +1591,18 @@
             const priceByDuration = new Map();
             rowsForProduct.forEach(row => {
               const duration = canonicalDuration(row.duration);
-              if (STANDARD_PACKAGE_LABELS.includes(duration)) {
+              const allowedLabels = normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
+                ? NETFLIX_PACKAGE_LABELS
+                : STANDARD_PACKAGE_LABELS;
+              if (allowedLabels.includes(duration)) {
                 priceByDuration.set(duration, Math.max(0, Number(row.price || 0)));
               }
             });
 
-            const nextPackages = STANDARD_PACKAGE_LABELS.map(label => ({
+            const allowedLabels = normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
+              ? NETFLIX_PACKAGE_LABELS
+              : STANDARD_PACKAGE_LABELS;
+            const nextPackages = allowedLabels.map(label => ({
               label,
               price: priceByDuration.has(label)
                 ? priceByDuration.get(label)

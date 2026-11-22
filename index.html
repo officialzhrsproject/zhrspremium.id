@@ -145,6 +145,14 @@
       .logo-spotify img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
       .logo-youtube { background: #fff; width: 44px; height: 44px; flex-basis: 44px; padding: 4px; overflow: hidden; }
       .logo-youtube img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
+      .logo-disney { background: #003546; width: 44px; height: 44px; flex-basis: 44px; padding: 0; overflow: hidden; }
+      .logo-disney img { width: 100%; height: 100%; object-fit: cover; transform: none; }
+      .logo-dramabox { background: #ff0050; width: 44px; height: 44px; flex-basis: 44px; padding: 0; overflow: hidden; }
+      .logo-dramabox img { width: 100%; height: 100%; object-fit: cover; transform: none; }
+      .logo-iqiyi { background: #00c73c; width: 44px; height: 44px; flex-basis: 44px; padding: 0; overflow: hidden; }
+      .logo-iqiyi img { width: 100%; height: 100%; object-fit: cover; transform: none; }
+      .logo-hbo-max { background: #050813; width: 44px; height: 44px; flex-basis: 44px; padding: 0; overflow: hidden; }
+      .logo-hbo-max img { width: 100%; height: 100%; object-fit: cover; transform: none; }
       .logo-ai { background: #fff; width: 44px; height: 44px; flex-basis: 44px; padding: 4px; overflow: hidden; }
       .logo-ai img { width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
       .logo-custom { background: #fff; width: 52px; height: 52px; flex: 0 0 52px; padding: 3px; overflow: hidden; }
@@ -2056,6 +2064,18 @@
           return `<span class="product-logo logo-custom" aria-label="Logo ${escapeHtml(prod.name)}"><img src="${escapeHtml(prod.image)}" alt="${escapeHtml(prod.name)}" /></span>`;
         }
         const name = String(prod?.name || '').toLowerCase();
+        if (prod?.id === 'p_new_disney_plus' || name.includes('disney')) {
+          return `<span class="product-logo logo-disney" aria-label="Logo Disney+"><img src="./disney-plus-logo.png" alt="Disney+" /></span>`;
+        }
+        if (prod?.id === 'p_new_dramabox' || name.includes('dramabox')) {
+          return `<span class="product-logo logo-dramabox" aria-label="Logo DramaBox"><img src="./dramabox-logo.png" alt="DramaBox" /></span>`;
+        }
+        if (prod?.id === 'p_new_iqiyi' || name.includes('iqiyi')) {
+          return `<span class="product-logo logo-iqiyi" aria-label="Logo iQIYI"><img src="./iqiyi-logo.png" alt="iQIYI" /></span>`;
+        }
+        if (prod?.id === 'p_new_hbo_max' || name.includes('hbo max')) {
+          return `<span class="product-logo logo-hbo-max" aria-label="Logo HBO Max"><img src="./hbo-max-logo.png" alt="HBO Max" /></span>`;
+        }
         if (prod?.id === 'p_nf' || name.includes('netflix')) {
           return `<span class="product-logo logo-netflix" aria-label="Logo Netflix"><img src="${EMBEDDED_ASSETS['netflix-logo.png']}" alt="Netflix" /></span>`;
         }

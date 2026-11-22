@@ -3724,6 +3724,13 @@
         showToast('3 kanal WhatsApp berhasil diperbarui.');
       });
 
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        window.history.scrollRestoration = 'manual';
+        window.addEventListener('pageshow', event => {
+          if (!event.persisted) window.scrollTo(0, 0);
+        });
+      }
+
       renderAll();
       initializeHeroCarousel();
       syncFromGoogleSheet();

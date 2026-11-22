@@ -1845,12 +1845,17 @@
           if (!name) continue;
           if (/^total(?:\s|\/)/i.test(name)) break;
 
-          const initialStock = parseSheetStockCount(row[initialStockIndex]);
+          const listedInitialStock = parseSheetStockCount(row[initialStockIndex]);
           const remainingStock = parseSheetStockCount(row[remainingStockIndex]);
           const sold = soldIndex >= 0
             ? parseSheetStockCount(row[soldIndex])
-            : initialStock !== null && remainingStock !== null
-              ? initialStock - remainingStock
+            : listedInitialStock !== null && remainingStock !== null
+              ? listedInitialStock - remainingStock
+              : null;
+          const initialStock = listedInitialStock !== null
+            ? listedInitialStock
+            : sold !== null && remainingStock !== null
+              ? sold + remainingStock
               : null;
           if (initialStock === null || remainingStock === null || sold === null ||
               remainingStock > initialStock || sold < 0 || sold > initialStock) {

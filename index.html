@@ -888,10 +888,8 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <h3 class="text-sm font-extrabold text-slate-950">STOK PRODUK</h3>
               <div class="flex flex-wrap items-center gap-2">
+                <span id="productStockSyncStatus" role="status" aria-live="polite" class="text-[11px] text-slate-500">Sinkron otomatis aktif</span>
                 <a href="https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-cyan-700 underline">Buka Rekap Stok</a>
-                <button id="syncProductStockBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-100 hover:bg-cyan-200 text-cyan-900 border border-cyan-300 transition">
-                  Sinkronkan dari Google Sheets
-                </button>
               </div>
             </div>
             <div id="adminProductList" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
@@ -1266,6 +1264,7 @@
       let activeTag = '#Semua';
       let isTestimonialHistoryOpen = false;
       let isProductSalesDashboardMinimized = false;
+      let isStockSyncInProgress = false;
       let searchQuery = '';
       let isAdminUnlocked = false;
       let activeAdminTab = 'brand';
@@ -1467,27 +1466,33 @@
         return Number.isSafeInteger(count) ? count : null;
       }
 
-      async function syncProductStockFromGoogleSheet() {
+      function updateProductStockSyncStatus(message, error) {
+        const status = document.getElementById('productStockSyncStatus');
+        if (!status) return;
+        status.textContent = message;
+        status.title = error ? String(error.message || error) : '';
+        status.classList.toggle('text-rose-600', Boolean(error));
+        status.classList.toggle('text-slate-500', !error);
+      }
+
+      async function syncFromGoogleSheetStock() {
+        if (isStockSyncInProgress) return;
+        isStockSyncInProgress = true;
         const list = document.getElementById('adminProductList');
-        const hasUnsavedChanges = state.products.some(product => {
-          const soldInput = list.querySelector(`[data-sold-prod="${product.id}"]`);
-          const stockInput = list.querySelector(`[data-stock-prod="${product.id}"]`);
-          return soldInput && stockInput &&
-            (!soldInput.checkValidity() || !stockInput.checkValidity() ||
-              Number(soldInput.value) !== Number(product.sold) ||
-              Number(stockInput.value) !== Number(product.stock));
-        });
-        if (hasUnsavedChanges) {
-          showToast('Simpan perubahan stok di katalog terlebih dahulu sebelum sinkronisasi.');
-          return;
-        }
-
-        const button = document.getElementById('syncProductStockBtn');
-        const originalLabel = button.textContent;
-        button.disabled = true;
-        button.textContent = 'Menyinkronkan...';
-
         try {
+          const hasUnsavedChanges = state.products.some(product => {
+            const soldInput = list.querySelector(`[data-sold-prod="${product.id}"]`);
+            const stockInput = list.querySelector(`[data-stock-prod="${product.id}"]`);
+            return soldInput && stockInput &&
+              (!soldInput.checkValidity() || !stockInput.checkValidity() ||
+                Number(soldInput.value) !== Number(product.sold) ||
+                Number(stockInput.value) !== Number(product.stock));
+          });
+          if (hasUnsavedChanges) {
+            updateProductStockSyncStatus('Simpan perubahan stok untuk melanjutkan sinkron otomatis.');
+            return;
+          }
+
           const csvUrls = [
             `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
             `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
@@ -1538,6 +1543,15 @@
             stock: product.stock,
             sold: product.sold
           }));
+          const changed = matched.some(({ product, stock, sold }) =>
+            product.stock !== stock || product.sold !== sold
+          );
+          if (!changed) {
+            const syncedAt = new Date().toLocaleTimeString('id-ID');
+            updateProductStockSyncStatus(`Stok otomatis • ${matched.length} produk • ${syncedAt}`);
+            return;
+          }
+
           matched.forEach(({ product, stock, sold }) => {
             product.stock = stock;
             product.sold = sold;
@@ -1553,15 +1567,13 @@
 
           renderProducts();
           renderAdminProducts();
-          const unmatchedNote = unmatchedNames.length
-            ? ` ${unmatchedNames.length} produk di sheet tidak ada di katalog.`
-            : '';
-          showToast(`${matched.length} produk berhasil disinkronkan dari Google Sheets.${unmatchedNote}`);
+          const syncedAt = new Date().toLocaleTimeString('id-ID');
+          const unmatchedNote = unmatchedNames.length ? ` • ${unmatchedNames.length} produk diabaikan` : '';
+          updateProductStockSyncStatus(`Stok otomatis • ${matched.length} produk • ${syncedAt}${unmatchedNote}`);
         } catch (error) {
-          showToast(`Sinkronisasi stok gagal: ${error.message || 'Periksa koneksi dan akses Google Sheets.'}`);
+          updateProductStockSyncStatus('Sinkron stok gagal; mencoba lagi otomatis.', error);
         } finally {
-          button.disabled = false;
-          button.textContent = originalLabel;
+          isStockSyncInProgress = false;
         }
       }
 
@@ -2803,11 +2815,6 @@
         showToast('Data stok dan penjualan berhasil disimpan.');
       });
 
-      document.getElementById('syncProductStockBtn').addEventListener('click', () => {
-        if (!isAdminUnlocked) return;
-        syncProductStockFromGoogleSheet();
-      });
-
       function renderAdminWaInputs() {
         const wrap = document.getElementById('adminWaInputs');
         wrap.innerHTML = state.waChannels.map((ch, idx) => `
@@ -3183,9 +3190,11 @@
 
       renderAll();
       syncFromGoogleSheet();
+      syncFromGoogleSheetStock();
       syncFromGoogleSheetWhatsApp();
       syncFromGoogleSheetSocials();
       window.setInterval(syncFromGoogleSheet, GOOGLE_SHEET_POLL_MS);
+      window.setInterval(syncFromGoogleSheetStock, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetWhatsApp, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetSocials, GOOGLE_SHEET_POLL_MS);
       window.setInterval(renderStoreStatus, 60000);

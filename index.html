@@ -691,6 +691,18 @@
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
         backdrop-filter: blur(4px);
       }
+      #socialGrid > .social-admin-wa-card {
+        background-color: rgba(255, 255, 255, 0.68) !important;
+        border: 1px solid rgba(203, 213, 225, 0.8) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(4px);
+      }
+      #socialGrid > .social-admin-wa-card * {
+        color: #0f172a !important;
+      }
+      #socialGrid > .social-admin-wa-card .social-admin-wa-cta {
+        color: #047857 !important;
+      }
       #testimonialGrid article * ,
       #socialGrid > a * {
         color: #0f172a !important;
@@ -2290,6 +2302,7 @@
             if (changed) {
               saveState();
               renderWaChannelButtons();
+              renderSocials();
               if (!document.getElementById('adminWaInputs').closest('.admin-tab-pane').classList.contains('hidden')) {
                 renderAdminWaInputs();
               }
@@ -3045,6 +3058,7 @@
 
       function renderSocials() {
         const visible = state.socials.filter(s => !s.hidden);
+        const activeAdminChannels = state.waChannels.filter(channel => channel.active !== false);
         const grid = document.getElementById('socialGrid');
         const socialIcons = {
           soc_ig: 'instagram',
@@ -3055,7 +3069,7 @@
           soc_yt: 'youtube'
         };
 
-        if (!visible.length) {
+        if (!visible.length && !activeAdminChannels.length) {
           grid.innerHTML = `
             <div class="col-span-full rounded-2xl border border-line bg-cardbg p-6 text-center text-sm text-slate-400">
               Semua kanal media sosial sedang disembunyikan.
@@ -3064,7 +3078,7 @@
           return;
         }
 
-        grid.innerHTML = visible.map(soc => `
+        const socialCards = visible.map(soc => `
           <a href="${escapeHtml(soc.url || '#')}" target="_blank" rel="noopener noreferrer" class="min-h-[104px] rounded-2xl border border-line bg-cardbg hover:bg-cardhover p-2 flex flex-col items-center justify-center gap-1.5 text-center transition group">
             <div class="flex w-full min-w-0 flex-col items-center gap-1">
               <span class="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
@@ -3078,6 +3092,32 @@
             <span class="text-[10px] font-semibold text-emerald-400 shrink-0">Buka &rarr;</span>
           </a>
         `).join('');
+        const adminCards = activeAdminChannels.map((channel, index) => {
+          const phone = String(channel.phone || '').replace(/\D/g, '');
+          const canChat = phone.length >= 8 && phone.length <= 15;
+          const tagName = canChat ? 'a' : 'div';
+          const linkAttributes = canChat
+            ? `href="https://wa.me/${phone}" target="_blank" rel="noopener noreferrer"`
+            : '';
+          const adminName = escapeHtml(channel.name || `Admin ${index + 1}`);
+          const phoneText = canChat ? `+${phone}` : 'Nomor WhatsApp belum diisi';
+
+          return `
+            <${tagName} ${linkAttributes} class="social-admin-wa-card min-h-[132px] rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 text-center transition">
+              <span class="w-10 h-10 rounded-full bg-white border border-emerald-200 flex items-center justify-center shrink-0">
+                <img src="${EMBEDDED_ASSETS['social-whatsapp.svg']}" alt="" class="w-7 h-7 object-contain" loading="lazy" />
+              </span>
+              <div class="w-full min-w-0">
+                <div class="text-xs font-bold truncate">WhatsApp Resmi</div>
+                <div class="text-[11px] font-semibold truncate">${adminName}</div>
+                <div class="text-[10px] truncate">Layanan Pelanggan &amp; Pesanan</div>
+                <div class="text-[10px] truncate">${escapeHtml(phoneText)}</div>
+              </div>
+              <span class="social-admin-wa-cta text-[10px] font-semibold shrink-0">${canChat ? 'Chat Sekarang' : 'Nomor belum tersedia'} &rarr;</span>
+            </${tagName}>
+          `;
+        }).join('');
+        grid.innerHTML = socialCards + adminCards;
       }
 
       function openOrderModal(product) {
@@ -3870,6 +3910,7 @@
           return;
         }
         renderWaChannelButtons();
+        renderSocials();
         showToast('3 kanal WhatsApp berhasil diperbarui.');
       });
 

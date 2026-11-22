@@ -61,6 +61,10 @@
         border: 1px solid #64748b !important;
         box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
       }
+      #katalog > div:first-child h2,
+      #katalog > div:first-child p {
+        color: #000000 !important;
+      }
       #searchInput::placeholder {
         color: #64748b !important;
         opacity: 1;
@@ -68,6 +72,17 @@
       #searchInput:focus {
         border-color: #059669 !important;
         box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      }
+      #categoryFilterBar .cat-btn {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      #categoryFilterBar .cat-btn[aria-pressed="true"] {
+        background-color: #10b981 !important;
+        color: #000000 !important;
+        border-color: #0f172a !important;
+        box-shadow: 0 0 0 1px #0f172a;
       }
       #bannerBadgeText {
         background-color: #d1fae5 !important;
@@ -781,9 +796,6 @@
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Buka &amp; Aktif
           </span>
-          <button id="quickOrderBtn" type="button" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-md shadow-emerald-500/20">
-            Order Sekarang
-          </button>
         </div>
       </div>
     </header>
@@ -2628,7 +2640,7 @@
         bar.innerHTML = cats.map(cat => {
           const active = cat === activeCategory;
           return `
-            <button type="button" data-cat="${escapeHtml(cat)}" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+            <button type="button" data-cat="${escapeHtml(cat)}" aria-pressed="${active}" class="cat-btn px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
               active
                 ? 'bg-emerald-500 text-slate-950'
                 : 'bg-cardbg hover:bg-cardhover text-slate-300 border border-line'
@@ -3485,14 +3497,6 @@
       document.getElementById('searchInput').addEventListener('input', e => {
         searchQuery = e.target.value;
         renderProducts();
-      });
-
-      document.getElementById('quickOrderBtn').addEventListener('click', () => {
-        if (state.products.length) {
-          openOrderModal(state.products[0]);
-        } else {
-          window.location.href = '#katalog';
-        }
       });
 
       document.getElementById('closeOrderModalBtn').addEventListener('click', closeOrderModal);

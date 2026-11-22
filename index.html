@@ -885,7 +885,15 @@
             <div id="productSalesDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
           <div class="space-y-3">
-            <h3 class="text-sm font-extrabold text-slate-950">STOK PRODUK</h3>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-extrabold text-slate-950">STOK PRODUK</h3>
+              <div class="flex flex-wrap items-center gap-2">
+                <a href="https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/edit?gid=0#gid=0" target="_blank" rel="noopener noreferrer" class="text-xs font-medium text-cyan-700 underline">Buka Rekap Stok</a>
+                <button id="syncProductStockBtn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-100 hover:bg-cyan-200 text-cyan-900 border border-cyan-300 transition">
+                  Sinkronkan dari Google Sheets
+                </button>
+              </div>
+            </div>
             <div id="adminProductList" class="space-y-2.5 max-h-96 overflow-y-auto pr-1"></div>
             <button id="saveProductStockBtn" type="button" class="w-full px-4 py-2.5 rounded-xl text-sm font-semibold border transition">
               Simpan Data
@@ -1390,6 +1398,171 @@
           if (channels.length === 3) break;
         }
         return channels;
+      }
+
+      function readGoogleSheetStock(csvText) {
+        const rows = parseCsvRows(csvText);
+        let headerRowIndex = -1;
+        let nameIndex = -1;
+        let initialStockIndex = -1;
+        let remainingStockIndex = -1;
+        let soldIndex = -1;
+
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const headers = rows[rowIndex].map(normalizeSheetHeader);
+          const candidateNameIndex = headers.findIndex(header =>
+            ['nama aplikasi', 'nama produk', 'nama', 'produk'].includes(header)
+          );
+          const candidateInitialStockIndex = headers.findIndex(header =>
+            ['stok awal', 'stok awal produk'].includes(header)
+          );
+          const candidateRemainingStockIndex = headers.findIndex(header =>
+            ['sisa stok', 'stok tersedia', 'stok akhir'].includes(header)
+          );
+          if (candidateNameIndex < 0 || candidateInitialStockIndex < 0 || candidateRemainingStockIndex < 0) continue;
+
+          nameIndex = candidateNameIndex;
+          initialStockIndex = candidateInitialStockIndex;
+          remainingStockIndex = candidateRemainingStockIndex;
+          soldIndex = headers.findIndex((header, index) =>
+            header === 'terjual' && !String(rows[rowIndex][index] || '').includes('%')
+          );
+          headerRowIndex = rowIndex;
+          break;
+        }
+
+        if (headerRowIndex < 0) {
+          throw new Error('Kolom Nama Aplikasi, Stok Awal, dan Sisa Stok tidak ditemukan di sheet.');
+        }
+
+        const products = [];
+        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          const name = String(row[nameIndex] || '').trim();
+          if (!name) continue;
+          if (/^total(?:\s|\/)/i.test(name)) break;
+
+          const initialStock = parseSheetStockCount(row[initialStockIndex]);
+          const remainingStock = parseSheetStockCount(row[remainingStockIndex]);
+          const sold = soldIndex >= 0
+            ? parseSheetStockCount(row[soldIndex])
+            : initialStock !== null && remainingStock !== null
+              ? initialStock - remainingStock
+              : null;
+          if (initialStock === null || remainingStock === null || sold === null ||
+              remainingStock > initialStock || sold < 0 || sold > initialStock) {
+            throw new Error(`Data stok untuk "${name}" tidak valid.`);
+          }
+          products.push({ name, stock: remainingStock, sold });
+        }
+
+        if (!products.length) throw new Error('Data produk stok tidak ditemukan di sheet.');
+        return products;
+      }
+
+      function parseSheetStockCount(value) {
+        const normalized = String(value || '').trim();
+        if (!/^\d+$/.test(normalized)) return null;
+        const count = Number(normalized);
+        return Number.isSafeInteger(count) ? count : null;
+      }
+
+      async function syncProductStockFromGoogleSheet() {
+        const list = document.getElementById('adminProductList');
+        const hasUnsavedChanges = state.products.some(product => {
+          const soldInput = list.querySelector(`[data-sold-prod="${product.id}"]`);
+          const stockInput = list.querySelector(`[data-stock-prod="${product.id}"]`);
+          return soldInput && stockInput &&
+            (!soldInput.checkValidity() || !stockInput.checkValidity() ||
+              Number(soldInput.value) !== Number(product.sold) ||
+              Number(stockInput.value) !== Number(product.stock));
+        });
+        if (hasUnsavedChanges) {
+          showToast('Simpan perubahan stok di katalog terlebih dahulu sebelum sinkronisasi.');
+          return;
+        }
+
+        const button = document.getElementById('syncProductStockBtn');
+        const originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Menyinkronkan...';
+
+        try {
+          const csvUrls = [
+            `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
+            `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
+          ];
+          let sheetProducts = null;
+          let lastError = null;
+
+          for (const csvUrl of csvUrls) {
+            try {
+              const response = await fetch(csvUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-store'
+              });
+              if (!response.ok) {
+                lastError = new Error(`Google Sheets mengembalikan status ${response.status}.`);
+                continue;
+              }
+              sheetProducts = readGoogleSheetStock(await response.text());
+              break;
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          if (!sheetProducts) {
+            throw lastError || new Error('Tidak dapat membaca data stok dari Google Sheets.');
+          }
+
+          const productsByName = new Map(
+            state.products.map(product => [normalizeProductName(product.name), product])
+          );
+          const matched = [];
+          const unmatchedNames = [];
+          sheetProducts.forEach(sheetProduct => {
+            const product = productsByName.get(normalizeProductName(sheetProduct.name));
+            if (!product) {
+              unmatchedNames.push(sheetProduct.name);
+              return;
+            }
+            matched.push({ product, stock: sheetProduct.stock, sold: sheetProduct.sold });
+          });
+          if (!matched.length) {
+            throw new Error('Tidak ada nama produk di sheet yang cocok dengan katalog.');
+          }
+
+          const previousValues = matched.map(({ product }) => ({
+            product,
+            stock: product.stock,
+            sold: product.sold
+          }));
+          matched.forEach(({ product, stock, sold }) => {
+            product.stock = stock;
+            product.sold = sold;
+          });
+
+          if (!saveState()) {
+            previousValues.forEach(({ product, stock, sold }) => {
+              product.stock = stock;
+              product.sold = sold;
+            });
+            throw new Error('Data gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+          }
+
+          renderProducts();
+          renderAdminProducts();
+          const unmatchedNote = unmatchedNames.length
+            ? ` ${unmatchedNames.length} produk di sheet tidak ada di katalog.`
+            : '';
+          showToast(`${matched.length} produk berhasil disinkronkan dari Google Sheets.${unmatchedNote}`);
+        } catch (error) {
+          showToast(`Sinkronisasi stok gagal: ${error.message || 'Periksa koneksi dan akses Google Sheets.'}`);
+        } finally {
+          button.disabled = false;
+          button.textContent = originalLabel;
+        }
       }
 
       function normalizeSheetHeader(value) {
@@ -2628,6 +2801,11 @@
         renderProducts();
         renderAdminProducts();
         showToast('Data stok dan penjualan berhasil disimpan.');
+      });
+
+      document.getElementById('syncProductStockBtn').addEventListener('click', () => {
+        if (!isAdminUnlocked) return;
+        syncProductStockFromGoogleSheet();
       });
 
       function renderAdminWaInputs() {

@@ -1274,6 +1274,7 @@
       let isTestimonialHistoryOpen = false;
       let isProductSalesDashboardMinimized = false;
       let isStockSyncInProgress = false;
+      let syncedSheetTotalRevenue = null;
       let searchQuery = '';
       let isAdminUnlocked = false;
       let activeAdminTab = 'brand';
@@ -1475,6 +1476,27 @@
         return Number.isSafeInteger(count) ? count : null;
       }
 
+      function readGoogleSheetTotalRevenue(csvText) {
+        const rows = parseCsvRows(csvText);
+        const headerRowIndex = rows.findIndex(row =>
+          row.some(cell => normalizeSheetHeader(cell) === 'total pendapatan')
+        );
+        if (headerRowIndex < 0) {
+          throw new Error('Kolom TOTAL PENDAPATAN tidak ditemukan di sheet.');
+        }
+
+        const revenueColumnIndex = rows[headerRowIndex].findIndex(cell =>
+          normalizeSheetHeader(cell) === 'total pendapatan'
+        );
+        const revenueText = rows[headerRowIndex + 1]?.[revenueColumnIndex];
+        const digits = String(revenueText || '').replace(/[^\d]/g, '');
+        const revenue = digits ? Number(digits) : NaN;
+        if (!Number.isSafeInteger(revenue) || revenue < 0) {
+          throw new Error('Nilai TOTAL PENDAPATAN di sheet tidak valid.');
+        }
+        return revenue;
+      }
+
       function updateProductStockSyncStatus(message, error) {
         const status = document.getElementById('productStockSyncStatus');
         if (!status) return;
@@ -1507,6 +1529,7 @@
             `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
           ];
           let sheetProducts = null;
+          let sheetTotalRevenue = null;
           let lastError = null;
 
           for (const csvUrl of csvUrls) {
@@ -1520,7 +1543,9 @@
                 lastError = new Error(`Google Sheets mengembalikan status ${response.status}.`);
                 continue;
               }
-              sheetProducts = readGoogleSheetStock(await response.text());
+              const csvText = await response.text();
+              sheetProducts = readGoogleSheetStock(csvText);
+              sheetTotalRevenue = readGoogleSheetTotalRevenue(csvText);
               break;
             } catch (error) {
               lastError = error;
@@ -1552,33 +1577,41 @@
             stock: product.stock,
             sold: product.sold
           }));
-          const changed = matched.some(({ product, stock, sold }) =>
+          const productsChanged = matched.some(({ product, stock, sold }) =>
             product.stock !== stock || product.sold !== sold
           );
-          if (!changed) {
+          const revenueChanged = syncedSheetTotalRevenue !== sheetTotalRevenue;
+          if (!productsChanged && !revenueChanged) {
             const syncedAt = new Date().toLocaleTimeString('id-ID');
-            updateProductStockSyncStatus(`Stok otomatis • ${matched.length} produk • ${syncedAt}`);
+            updateProductStockSyncStatus(`Data otomatis • ${matched.length} produk • ${syncedAt}`);
             return;
           }
 
-          matched.forEach(({ product, stock, sold }) => {
-            product.stock = stock;
-            product.sold = sold;
-          });
-
-          if (!saveState()) {
-            previousValues.forEach(({ product, stock, sold }) => {
+          if (productsChanged) {
+            matched.forEach(({ product, stock, sold }) => {
               product.stock = stock;
               product.sold = sold;
             });
-            throw new Error('Data gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+
+            if (!saveState()) {
+              previousValues.forEach(({ product, stock, sold }) => {
+                product.stock = stock;
+                product.sold = sold;
+              });
+              throw new Error('Data gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
+            }
           }
 
-          renderProducts();
-          renderAdminProducts();
+          syncedSheetTotalRevenue = sheetTotalRevenue;
+          if (productsChanged) {
+            renderProducts();
+            renderAdminProducts();
+          } else {
+            document.getElementById('totalSalesMetric').textContent = formatRupiah(syncedSheetTotalRevenue);
+          }
           const syncedAt = new Date().toLocaleTimeString('id-ID');
           const unmatchedNote = unmatchedNames.length ? ` • ${unmatchedNames.length} produk diabaikan` : '';
-          updateProductStockSyncStatus(`Stok otomatis • ${matched.length} produk • ${syncedAt}${unmatchedNote}`);
+          updateProductStockSyncStatus(`Data otomatis • ${matched.length} produk • ${syncedAt}${unmatchedNote}`);
         } catch (error) {
           updateProductStockSyncStatus('Sinkron stok gagal; mencoba lagi otomatis.', error);
         } finally {
@@ -2687,9 +2720,10 @@
           const basePrice = Number.isFinite(packagePrice) ? packagePrice : 0;
           return sum + (Math.max(0, Number(prod.sold || 0)) * basePrice);
         }, 0);
+        const displayedTotalSales = syncedSheetTotalRevenue ?? totalSales;
         document.getElementById('totalSoldMetric').textContent = totalSold.toLocaleString('id-ID');
         document.getElementById('totalStockMetric').textContent = totalStock.toLocaleString('id-ID');
-        document.getElementById('totalSalesMetric').textContent = formatRupiah(totalSales);
+        document.getElementById('totalSalesMetric').textContent = formatRupiah(displayedTotalSales);
 
         const salesDashboard = document.getElementById('productSalesDashboard');
         salesDashboard.innerHTML = productsInCategoryOrder().map(prod => {

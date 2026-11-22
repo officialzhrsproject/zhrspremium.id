@@ -1138,13 +1138,14 @@
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label for="cfgOpeningTime" class="block text-[11px] text-slate-500 mb-1">Jam Buka</label>
-                  <input id="cfgOpeningTime" type="time" required class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <input id="cfgOpeningTime" type="time" required readonly class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
                 </div>
                 <div>
                   <label for="cfgClosingTime" class="block text-[11px] text-slate-500 mb-1">Jam Tutup</label>
-                  <input id="cfgClosingTime" type="time" required class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <input id="cfgClosingTime" type="time" required readonly class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
                 </div>
               </div>
+              <p id="operatingHoursSyncStatus" role="status" aria-live="polite" class="mt-2 text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
             </div>
             <div>
               <label class="block text-xs font-medium text-slate-300 mb-1">Badge Banner</label>
@@ -1608,6 +1609,7 @@
       let isTestimonialHistoryOpen = false;
       let isProductSalesDashboardMinimized = false;
       let isStockSyncInProgress = false;
+      let isOperatingHoursSyncInProgress = false;
       let syncedSheetTotalRevenue = null;
       let searchQuery = '';
       let isAdminUnlocked = false;
@@ -1743,6 +1745,64 @@
         return channels;
       }
 
+      function parseSheetTime(value) {
+        const normalized = String(value || '').trim().toUpperCase().replace(/\s+/g, ' ');
+        const match = normalized.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/);
+        if (!match) return null;
+
+        let hour = Number(match[1]);
+        const minute = Number(match[2]);
+        if (minute > 59) return null;
+        if (match[3]) {
+          if (hour < 1 || hour > 12) return null;
+          hour = (hour % 12) + (match[3] === 'PM' ? 12 : 0);
+        } else if (hour > 23) {
+          return null;
+        }
+        return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+      }
+
+      function readGoogleSheetOperatingHours(csvText) {
+        const rows = parseCsvRows(csvText);
+        const sectionIndex = rows.findIndex(row =>
+          row.some(cell => normalizeSheetHeader(cell) === 'pengaturan jam operasional toko')
+        );
+        if (sectionIndex < 0) {
+          throw new Error('Bagian PENGATURAN JAM OPERASIONAL TOKO tidak ditemukan di sheet.');
+        }
+
+        let headerRowIndex = -1;
+        let openingColumnIndex = -1;
+        let closingColumnIndex = -1;
+        for (let rowIndex = sectionIndex + 1; rowIndex < Math.min(rows.length, sectionIndex + 6); rowIndex++) {
+          const headers = rows[rowIndex].map(normalizeSheetHeader);
+          openingColumnIndex = headers.indexOf('jam buka');
+          closingColumnIndex = headers.indexOf('jam tutup');
+          if (openingColumnIndex >= 0 && closingColumnIndex >= 0) {
+            headerRowIndex = rowIndex;
+            break;
+          }
+        }
+        if (headerRowIndex < 0) {
+          throw new Error('Kolom Jam Buka dan Jam Tutup tidak ditemukan di sheet.');
+        }
+
+        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          const openingValue = String(row[openingColumnIndex] || '').trim();
+          const closingValue = String(row[closingColumnIndex] || '').trim();
+          if (!openingValue && !closingValue) continue;
+
+          const openingTime = parseSheetTime(openingValue);
+          const closingTime = parseSheetTime(closingValue);
+          if (!openingTime || !closingTime) {
+            throw new Error('Nilai Jam Buka atau Jam Tutup di sheet tidak valid.');
+          }
+          return { openingTime, closingTime };
+        }
+        throw new Error('Nilai Jam Buka dan Jam Tutup tidak ditemukan di sheet.');
+      }
+
       function readGoogleSheetStock(csvText) {
         const rows = parseCsvRows(csvText);
         let headerRowIndex = -1;
@@ -1838,6 +1898,74 @@
         status.title = error ? String(error.message || error) : '';
         status.classList.toggle('text-rose-600', Boolean(error));
         status.classList.toggle('text-slate-500', !error);
+      }
+
+      function updateOperatingHoursSyncStatus(message, error) {
+        const status = document.getElementById('operatingHoursSyncStatus');
+        if (!status) return;
+        status.textContent = message;
+        status.title = error ? String(error.message || error) : '';
+        status.classList.toggle('text-rose-600', Boolean(error));
+        status.classList.toggle('text-slate-500', !error);
+      }
+
+      async function syncFromGoogleSheetOperatingHours() {
+        if (isOperatingHoursSyncInProgress) return;
+        isOperatingHoursSyncInProgress = true;
+        try {
+          const timestamp = Date.now();
+          const csvUrls = [
+            `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${timestamp}`,
+            `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${timestamp}`
+          ];
+          let hours = null;
+          let lastError = null;
+          for (const csvUrl of csvUrls) {
+            try {
+              const response = await fetch(csvUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-store'
+              });
+              if (!response.ok) {
+                throw new Error(`Google Sheets mengembalikan status ${response.status}.`);
+              }
+              hours = readGoogleSheetOperatingHours(await response.text());
+              break;
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          if (!hours) {
+            throw lastError || new Error('Tidak dapat membaca jam operasional dari Google Sheets.');
+          }
+
+          const previousOpeningTime = state.brand.openingTime;
+          const previousClosingTime = state.brand.closingTime;
+          const changed = previousOpeningTime !== hours.openingTime ||
+            previousClosingTime !== hours.closingTime;
+          if (changed) {
+            state.brand.openingTime = hours.openingTime;
+            state.brand.closingTime = hours.closingTime;
+            if (!saveState()) {
+              state.brand.openingTime = previousOpeningTime;
+              state.brand.closingTime = previousClosingTime;
+              throw new Error('Jam operasional gagal disimpan di browser ini.');
+            }
+          }
+
+          document.getElementById('cfgOpeningTime').value = hours.openingTime;
+          document.getElementById('cfgClosingTime').value = hours.closingTime;
+          renderStoreStatus();
+          const syncedAt = new Date().toLocaleTimeString('id-ID');
+          updateOperatingHoursSyncStatus(
+            `Tersinkron otomatis • Buka ${hours.openingTime} • Tutup ${hours.closingTime} • ${syncedAt}`
+          );
+        } catch (error) {
+          updateOperatingHoursSyncStatus('Sinkron jam gagal; mencoba lagi otomatis.', error);
+        } finally {
+          isOperatingHoursSyncInProgress = false;
+        }
       }
 
       async function syncFromGoogleSheetStock() {
@@ -2657,7 +2785,7 @@
         const [openingHour, openingMinute] = openingTime.split(':').map(Number);
         const [closingHour, closingMinute] = closingTime.split(':').map(Number);
         const now = new Date();
-        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
         const openingMinutes = openingHour * 60 + openingMinute;
         const closingMinutes = closingHour * 60 + closingMinute;
         const isOpen = openingMinutes < closingMinutes
@@ -3751,13 +3879,15 @@
       initializeHeroCarousel();
       syncFromGoogleSheet();
       syncFromGoogleSheetStock();
+      syncFromGoogleSheetOperatingHours();
       syncFromGoogleSheetWhatsApp();
       syncFromGoogleSheetSocials();
       window.setInterval(syncFromGoogleSheet, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetStock, GOOGLE_SHEET_POLL_MS);
+      window.setInterval(syncFromGoogleSheetOperatingHours, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetWhatsApp, GOOGLE_SHEET_POLL_MS);
       window.setInterval(syncFromGoogleSheetSocials, GOOGLE_SHEET_POLL_MS);
-      window.setInterval(renderStoreStatus, 60000);
+      window.setInterval(renderStoreStatus, GOOGLE_SHEET_POLL_MS);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) renderStoreStatus();
       });

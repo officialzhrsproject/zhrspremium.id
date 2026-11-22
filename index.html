@@ -640,14 +640,22 @@
         color: #0f172a !important;
       }
       #testimoni > div:first-child {
-        background-color: #ffffff;
-        border: 1px solid #cbd5e1;
+        background-color: rgba(255, 255, 255, 0.68);
+        border: 1px solid rgba(203, 213, 225, 0.8);
         border-radius: 16px;
         padding: 16px;
+        backdrop-filter: blur(4px);
       }
-      #testimoni #testimonialGrid > div,
+      #testimoni #testimonialGrid > div {
+        background-color: rgba(255, 255, 255, 0.68) !important;
+        backdrop-filter: blur(4px);
+      }
       #testimoni #testiForm {
-        background-color: #ffffff !important;
+        background-color: transparent !important;
+      }
+      #testiFormCard {
+        background-color: rgba(255, 255, 255, 0.68) !important;
+        backdrop-filter: blur(4px);
       }
       #testimoni #testiForm input,
       #testimoni #testiForm textarea,
@@ -671,10 +679,17 @@
         color: #0f172a !important;
       }
       #testimonialGrid article,
-      #socialGrid > a {
-        background-color: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
+      #testimonialHistoryGrid article {
+        background-color: rgba(255, 255, 255, 0.68) !important;
+        border: 1px solid rgba(203, 213, 225, 0.8) !important;
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(4px);
+      }
+      #socialGrid > a {
+        background-color: rgba(255, 255, 255, 0.68) !important;
+        border: 1px solid rgba(203, 213, 225, 0.8) !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.10);
+        backdrop-filter: blur(4px);
       }
       #testimonialGrid article * ,
       #socialGrid > a * {
@@ -698,10 +713,11 @@
         border-color: #22d3ee !important;
       }
       #sosmed > div:first-child {
-        background-color: #ffffff;
-        border: 1px solid #cbd5e1;
+        background-color: rgba(255, 255, 255, 0.68);
+        border: 1px solid rgba(203, 213, 225, 0.8);
         border-radius: 16px;
         padding: 16px;
+        backdrop-filter: blur(4px);
       }
       #adminPanelCard .admin-tab-btn,
       #adminPanelCard button {

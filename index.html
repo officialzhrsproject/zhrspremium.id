@@ -700,9 +700,6 @@
       #socialGrid > .social-admin-wa-card * {
         color: #0f172a !important;
       }
-      #socialGrid > .social-admin-wa-card .social-admin-wa-cta {
-        color: #047857 !important;
-      }
       #testimonialGrid article * ,
       #socialGrid > a * {
         color: #0f172a !important;
@@ -3086,7 +3083,6 @@
               </span>
               <div class="w-full min-w-0">
                 <div class="text-xs font-bold text-white group-hover:text-emerald-300 transition truncate">${escapeHtml(soc.name)}</div>
-                <div class="text-[10px] text-slate-400 truncate">${escapeHtml(soc.handle || '')}</div>
               </div>
             </div>
             <span class="text-[10px] font-semibold text-emerald-400 shrink-0">Buka &rarr;</span>
@@ -3100,20 +3096,15 @@
             ? `href="https://wa.me/${phone}" target="_blank" rel="noopener noreferrer"`
             : '';
           const adminName = escapeHtml(channel.name || `Admin ${index + 1}`);
-          const phoneText = canChat ? `+${phone}` : 'Nomor WhatsApp belum diisi';
 
           return `
-            <${tagName} ${linkAttributes} class="social-admin-wa-card min-h-[132px] rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 text-center transition">
-              <span class="w-10 h-10 rounded-full bg-white border border-emerald-200 flex items-center justify-center shrink-0">
-                <img src="${EMBEDDED_ASSETS['social-whatsapp.svg']}" alt="" class="w-7 h-7 object-contain" loading="lazy" />
+            <${tagName} ${linkAttributes} class="social-admin-wa-card min-h-[104px] rounded-2xl p-2 flex flex-col items-center justify-center gap-1 text-center transition">
+              <span class="w-8 h-8 rounded-lg bg-white border border-emerald-200 flex items-center justify-center shrink-0">
+                <img src="${EMBEDDED_ASSETS['social-whatsapp.svg']}" alt="" class="w-5 h-5 object-contain" loading="lazy" />
               </span>
               <div class="w-full min-w-0">
-                <div class="text-xs font-bold truncate">WhatsApp Resmi</div>
-                <div class="text-[11px] font-semibold truncate">${adminName}</div>
-                <div class="text-[10px] truncate">Layanan Pelanggan &amp; Pesanan</div>
-                <div class="text-[10px] truncate">${escapeHtml(phoneText)}</div>
+                <div class="text-[10px] font-semibold leading-tight truncate">${adminName}</div>
               </div>
-              <span class="social-admin-wa-cta text-[10px] font-semibold shrink-0">${canChat ? 'Chat Sekarang' : 'Nomor belum tersedia'} &rarr;</span>
             </${tagName}>
           `;
         }).join('');

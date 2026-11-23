@@ -1591,13 +1591,20 @@
               }))
           ].map(product => {
             const defaultProduct = DEFAULT_STATE.products.find(item => item.id === product.id);
+            const existingStock = Math.max(0, Number(product.stock ?? defaultProduct?.stock ?? 0));
+            const sold = Math.max(0, Number(product.sold ?? defaultProduct?.sold ?? 0));
+            const savedInitialStock = Number(product.initialStock);
+            const initialStock = Number.isSafeInteger(savedInitialStock) && savedInitialStock >= sold
+              ? savedInitialStock
+              : existingStock + sold;
             return {
               ...normalizeProductDurations(product),
               category: SOCIAL_MEDIA_PRODUCT_IDS.has(product.id)
                 ? SOCIAL_MEDIA_CATEGORY
                 : product.category,
-              stock: Math.max(0, Number(product.stock ?? defaultProduct?.stock ?? 0)),
-              sold: Math.max(0, Number(product.sold ?? defaultProduct?.sold ?? 0))
+              stock: initialStock - sold,
+              sold,
+              initialStock
             };
           });
           return {
@@ -1622,6 +1629,7 @@
       let isTestimonialHistoryOpen = false;
       let isProductSalesDashboardMinimized = false;
       let isStockSyncInProgress = false;
+      let isStockWriteInProgress = false;
       let isOperatingHoursSyncInProgress = false;
       let isWhatsAppSyncInProgress = false;
       let isSocialSyncInProgress = false;
@@ -1708,6 +1716,17 @@
               active: !social.hidden
             };
           }))
+        }));
+      }
+
+      async function syncStockToGoogleSheet(products) {
+        return Boolean(await postToGoogleSheet({
+          action: 'updateStock',
+          products: JSON.stringify(products.map(product => ({
+            name: product.name,
+            initialStock: product.initialStock,
+            sold: product.sold
+          })))
         }));
       }
 
@@ -1915,10 +1934,11 @@
               ? sold + remainingStock
               : null;
           if (initialStock === null || remainingStock === null || sold === null ||
-              remainingStock > initialStock || sold < 0 || sold > initialStock) {
+              remainingStock > initialStock || sold < 0 || sold > initialStock ||
+              initialStock - sold !== remainingStock) {
             throw new Error(`Data stok untuk "${name}" tidak valid.`);
           }
-          products.push({ name, stock: remainingStock, sold });
+          products.push({ name, initialStock, stock: remainingStock, sold });
         }
 
         if (!products.length) throw new Error('Data produk stok tidak ditemukan di sheet.');
@@ -2040,17 +2060,19 @@
       }
 
       async function syncFromGoogleSheetStock() {
-        if (isStockSyncInProgress) return;
+        if (isStockSyncInProgress || isStockWriteInProgress) return;
         isStockSyncInProgress = true;
         const list = document.getElementById('adminProductList');
         try {
           const hasUnsavedChanges = state.products.some(product => {
             const soldInput = list.querySelector(`[data-sold-prod="${product.id}"]`);
-            const stockInput = list.querySelector(`[data-stock-prod="${product.id}"]`);
-            return soldInput && stockInput &&
-              (!soldInput.checkValidity() || !stockInput.checkValidity() ||
+            const initialStockInput = list.querySelector(`[data-initial-stock-prod="${product.id}"]`);
+            const remainingStockInput = list.querySelector(`[data-remaining-stock-prod="${product.id}"]`);
+            return soldInput && initialStockInput && remainingStockInput &&
+              (!soldInput.checkValidity() || !initialStockInput.checkValidity() ||
                 Number(soldInput.value) !== Number(product.sold) ||
-                Number(stockInput.value) !== Number(product.stock));
+                Number(initialStockInput.value) !== Number(product.initialStock) ||
+                Number(remainingStockInput.value) !== Number(product.stock));
           });
           if (hasUnsavedChanges) {
             updateProductStockSyncStatus('Simpan perubahan stok untuk melanjutkan sinkron otomatis.');
@@ -2087,6 +2109,7 @@
           if (!sheetProducts) {
             throw lastError || new Error('Tidak dapat membaca data stok dari Google Sheets.');
           }
+          if (isStockWriteInProgress) return;
 
           const productsByName = new Map(
             state.products.map(product => [normalizeProductName(product.name), product])
@@ -2099,7 +2122,12 @@
               unmatchedNames.push(sheetProduct.name);
               return;
             }
-            matched.push({ product, stock: sheetProduct.stock, sold: sheetProduct.sold });
+            matched.push({
+              product,
+              initialStock: sheetProduct.initialStock,
+              stock: sheetProduct.stock,
+              sold: sheetProduct.sold
+            });
           });
           if (!matched.length) {
             throw new Error('Tidak ada nama produk di sheet yang cocok dengan katalog.');
@@ -2107,11 +2135,12 @@
 
           const previousValues = matched.map(({ product }) => ({
             product,
+            initialStock: product.initialStock,
             stock: product.stock,
             sold: product.sold
           }));
-          const productsChanged = matched.some(({ product, stock, sold }) =>
-            product.stock !== stock || product.sold !== sold
+          const productsChanged = matched.some(({ product, initialStock, stock, sold }) =>
+            product.initialStock !== initialStock || product.stock !== stock || product.sold !== sold
           );
           const revenueChanged = syncedSheetTotalRevenue !== sheetTotalRevenue;
           if (!productsChanged && !revenueChanged) {
@@ -2121,13 +2150,15 @@
           }
 
           if (productsChanged) {
-            matched.forEach(({ product, stock, sold }) => {
+            matched.forEach(({ product, initialStock, stock, sold }) => {
+              product.initialStock = initialStock;
               product.stock = stock;
               product.sold = sold;
             });
 
             if (!saveState()) {
-              previousValues.forEach(({ product, stock, sold }) => {
+              previousValues.forEach(({ product, initialStock, stock, sold }) => {
+                product.initialStock = initialStock;
                 product.stock = stock;
                 product.sold = sold;
               });
@@ -3586,11 +3617,14 @@
                   </div>
                 </div>
                 <div class="flex flex-wrap items-end gap-2">
-                  <label class="text-[11px] text-slate-400">Terjual
-                    <input type="number" min="0" step="1" data-sold-prod="${escapeHtml(prod.id)}" data-before-sold="${Math.max(0, Number(prod.sold || 0))}" data-before-stock="${Math.max(0, Number(prod.stock || 0))}" value="${Math.max(0, Number(prod.sold || 0))}" class="sold-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
+                  <label class="text-[11px] text-slate-400">Stok Awal
+                    <input type="number" min="0" step="1" required data-initial-stock-prod="${escapeHtml(prod.id)}" data-stock-prod-id="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.initialStock ?? (Number(prod.stock || 0) + Number(prod.sold || 0))))}" class="initial-stock-prod-input mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
                   </label>
-                  <label class="text-[11px] text-slate-400">Stok
-                    <input type="number" min="0" step="1" data-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="stock-prod-input mt-1 block w-24 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
+                  <label class="text-[11px] text-slate-400">Terjual
+                    <input type="number" min="0" step="1" required data-sold-prod="${escapeHtml(prod.id)}" data-stock-prod-id="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.sold || 0))}" class="sold-prod-input mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
+                  </label>
+                  <label class="text-[11px] text-slate-400">Sisa Stok
+                    <input type="number" min="0" step="1" readonly data-remaining-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-slate-300" />
                   </label>
                   <button type="button" data-save-stock-prod="${escapeHtml(prod.id)}" class="save-stock-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-600">
                     Simpan
@@ -3601,68 +3635,109 @@
           `;
         }).join('');
 
-        list.querySelectorAll('.sold-prod-input').forEach(input => {
+        list.querySelectorAll('.initial-stock-prod-input, .sold-prod-input').forEach(input => {
           input.addEventListener('input', () => {
-            const previousSold = Math.max(0, Number(input.dataset.beforeSold || 0));
-            const previousStock = Math.max(0, Number(input.dataset.beforeStock || 0));
-            const nextSold = Number(input.value);
-            if (!Number.isFinite(nextSold) || nextSold < 0) return;
-            const soldDifference = nextSold - previousSold;
-            const stockInput = list.querySelector(`[data-stock-prod="${input.dataset.soldProd}"]`);
-            if (stockInput) stockInput.value = String(Math.max(0, previousStock - soldDifference));
+            const productId = input.dataset.stockProdId;
+            const initialStockInput = list.querySelector(`[data-initial-stock-prod="${productId}"]`);
+            const soldInput = list.querySelector(`[data-sold-prod="${productId}"]`);
+            const remainingStockInput = list.querySelector(`[data-remaining-stock-prod="${productId}"]`);
+            if (!initialStockInput || !soldInput || !remainingStockInput) return;
+            const initialStock = Number(initialStockInput.value);
+            const sold = Number(soldInput.value);
+            if (!Number.isFinite(initialStock) || !Number.isFinite(sold)) return;
+            remainingStockInput.value = String(Math.max(0, initialStock - sold));
           });
         });
 
         list.querySelectorAll('.save-stock-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
+          btn.addEventListener('click', async () => {
             if (!isAdminUnlocked) return;
             const target = state.products.find(p => p.id === btn.dataset.saveStockProd);
             if (!target) return;
 
+            const initialStockInput = list.querySelector(`[data-initial-stock-prod="${target.id}"]`);
             const soldInput = list.querySelector(`[data-sold-prod="${target.id}"]`);
-            const stockInput = list.querySelector(`[data-stock-prod="${target.id}"]`);
-            if (!soldInput || !stockInput) return;
+            const remainingStockInput = list.querySelector(`[data-remaining-stock-prod="${target.id}"]`);
+            if (!initialStockInput || !soldInput || !remainingStockInput) return;
 
-            if (!soldInput.checkValidity() || !stockInput.checkValidity()) {
-              (!soldInput.checkValidity() ? soldInput : stockInput).reportValidity();
-              showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+            const invalidInput = [initialStockInput, soldInput].find(input =>
+              !input.checkValidity() || !Number.isSafeInteger(Number(input.value))
+            );
+            if (invalidInput) {
+              invalidInput.reportValidity();
+              showToast('Masukkan stok awal dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
               return;
             }
 
+            const nextInitialStock = Number(initialStockInput.value);
             const nextSold = Number(soldInput.value);
-            const nextStock = Number(stockInput.value);
-            if (!Number.isSafeInteger(nextSold) || !Number.isSafeInteger(nextStock)) {
-              showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+            if (nextSold > nextInitialStock) {
+              soldInput.focus();
+              showToast('Jumlah terjual tidak boleh melebihi stok awal.');
               return;
             }
+            const nextStock = nextInitialStock - nextSold;
 
+            const previousInitialStock = target.initialStock;
             const previousSold = target.sold;
             const previousStock = target.stock;
+            target.initialStock = nextInitialStock;
             target.sold = nextSold;
             target.stock = nextStock;
 
             if (!saveState()) {
+              target.initialStock = previousInitialStock;
               target.sold = previousSold;
               target.stock = previousStock;
               showToast('Stok gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
               return;
             }
 
+            isStockWriteInProgress = true;
+            try {
+              const savedToSheet = await syncStockToGoogleSheet([target]);
+              if (!savedToSheet) throw new Error('URL endpoint Google Sheets belum diatur.');
+            } catch (error) {
+              target.initialStock = previousInitialStock;
+              target.sold = previousSold;
+              target.stock = previousStock;
+              const rollbackSaved = saveState();
+              renderProducts();
+              renderAdminProducts();
+              const rollbackWarning = rollbackSaved ? '' : ' Data lokal gagal dipulihkan; muat ulang halaman sebelum melanjutkan.';
+              showToast(`Stok ${target.name} gagal disimpan ke Excel: ${error.message}${rollbackWarning}`);
+              return;
+            } finally {
+              isStockWriteInProgress = false;
+            }
+
             renderProducts();
             renderAdminProducts();
-            showToast(`Stok ${target.name} berhasil disimpan.`);
+            await syncFromGoogleSheetStock();
+            showToast(`Stok ${target.name} berhasil disimpan ke Excel.`);
           });
         });
       }
 
-      document.getElementById('saveProductStockBtn').addEventListener('click', () => {
+      document.getElementById('saveProductStockBtn').addEventListener('click', async () => {
         if (!isAdminUnlocked) return;
 
-        const inputs = Array.from(document.querySelectorAll('#adminProductList .sold-prod-input, #adminProductList .stock-prod-input'));
+        const inputs = Array.from(document.querySelectorAll('#adminProductList .initial-stock-prod-input, #adminProductList .sold-prod-input'));
         const invalidInput = inputs.find(input => !input.checkValidity() || !Number.isSafeInteger(Number(input.value)));
         if (invalidInput) {
           invalidInput.reportValidity();
-          showToast('Masukkan stok dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+          showToast('Masukkan stok awal dan jumlah terjual berupa bilangan bulat 0 atau lebih.');
+          return;
+        }
+
+        const invalidProduct = state.products.find(product => {
+          const initialStockInput = document.querySelector(`[data-initial-stock-prod="${product.id}"]`);
+          const soldInput = document.querySelector(`[data-sold-prod="${product.id}"]`);
+          return !initialStockInput || !soldInput ||
+            Number(soldInput.value) > Number(initialStockInput.value);
+        });
+        if (invalidProduct) {
+          showToast('Jumlah terjual tidak boleh melebihi stok awal.');
           return;
         }
 
@@ -3671,11 +3746,12 @@
           packages: Array.isArray(product.packages) ? product.packages.map(pkg => ({ ...pkg })) : []
         }));
         state.products.forEach(product => {
+          const initialStockInput = document.querySelector(`[data-initial-stock-prod="${product.id}"]`);
           const soldInput = document.querySelector(`[data-sold-prod="${product.id}"]`);
-          const stockInput = document.querySelector(`[data-stock-prod="${product.id}"]`);
-          if (!soldInput || !stockInput) return;
+          if (!initialStockInput || !soldInput) return;
+          product.initialStock = Number(initialStockInput.value);
           product.sold = Number(soldInput.value);
-          product.stock = Number(stockInput.value);
+          product.stock = product.initialStock - product.sold;
         });
 
         if (!saveState()) {
@@ -3685,9 +3761,27 @@
           showToast('Data gagal disimpan di browser ini. Periksa ruang penyimpanan lalu coba lagi.');
           return;
         }
+
+        isStockWriteInProgress = true;
+        try {
+          const savedToSheet = await syncStockToGoogleSheet(state.products);
+          if (!savedToSheet) throw new Error('URL endpoint Google Sheets belum diatur.');
+        } catch (error) {
+          state.products = previousProducts;
+          const rollbackSaved = saveState();
+          renderProducts();
+          renderAdminProducts();
+          const rollbackWarning = rollbackSaved ? '' : ' Data lokal gagal dipulihkan; muat ulang halaman sebelum melanjutkan.';
+          showToast(`Stok gagal disimpan ke Excel: ${error.message}${rollbackWarning}`);
+          return;
+        } finally {
+          isStockWriteInProgress = false;
+        }
+
         renderProducts();
         renderAdminProducts();
-        showToast('Data stok dan penjualan berhasil disimpan.');
+        await syncFromGoogleSheetStock();
+        showToast('Data Stok Awal dan Terjual berhasil disimpan ke Excel.');
       });
 
       function renderStatusToggle(button, isOn) {

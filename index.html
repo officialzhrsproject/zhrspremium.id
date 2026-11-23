@@ -2593,25 +2593,60 @@
           priceIndex = candidatePriceIndex;
           break;
         }
-        if (headerRowIndex < 0) return [];
 
         const products = [];
-        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
-          const row = rows[rowIndex];
-          const name = String(row[nameIndex] || '').trim();
-          const duration = String(row[durationIndex] || '').trim();
-          if (row.some(cell => /^total\s+paket\b/i.test(String(cell || '').trim()))) break;
-          if (normalizeSheetHeader(name) === 'jenis layanan' ||
-              normalizeSheetHeader(duration) === 'nama paket lengkap' ||
-              row.some(cell => normalizeSheetHeader(cell).startsWith('daftar harga layanan sosial media'))) {
+        if (headerRowIndex >= 0) {
+          for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
+            const name = String(row[nameIndex] || '').trim();
+            const duration = String(row[durationIndex] || '').trim();
+            if (row.some(cell => /^total\s+paket\b/i.test(String(cell || '').trim()))) break;
+            if (normalizeSheetHeader(name) === 'jenis layanan' ||
+                normalizeSheetHeader(duration) === 'nama paket lengkap' ||
+                row.some(cell => normalizeSheetHeader(cell).startsWith('daftar harga layanan sosial media'))) {
+              break;
+            }
+            if (!name || !duration) continue;
+            products.push({
+              name,
+              duration: canonicalDuration(duration),
+              price: parseIndonesianPrice(row[priceIndex])
+            });
+          }
+        }
+
+        let instagramHeaderRow = -1;
+        let instagramPlatformIndex = -1;
+        let instagramPackageIndex = -1;
+        let instagramPriceIndex = -1;
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const headers = rows[rowIndex];
+          const platformIndex = findSheetColumn(headers, ['Platform']);
+          const categoryIndex = findSheetColumn(headers, ['Kategori Layanan']);
+          const packageIndex = findSheetColumn(headers, ['Nama Paket Lengkap']);
+          const serviceCodeIndex = findSheetColumn(headers, ['Kode Layanan']);
+          const socialPriceIndex = findSheetColumn(headers, ['Harga Jual']);
+          if ([platformIndex, categoryIndex, packageIndex, serviceCodeIndex, socialPriceIndex].every(index => index >= 0)) {
+            instagramHeaderRow = rowIndex;
+            instagramPlatformIndex = platformIndex;
+            instagramPackageIndex = packageIndex;
+            instagramPriceIndex = socialPriceIndex;
             break;
           }
-          if (!name || !duration) continue;
-          products.push({
-            name,
-            duration: canonicalDuration(duration),
-            price: parseIndonesianPrice(row[priceIndex])
-          });
+        }
+
+        if (instagramHeaderRow >= 0) {
+          for (let rowIndex = instagramHeaderRow + 1; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
+            const platform = String(row[instagramPlatformIndex] || '').trim();
+            const packageLabel = String(row[instagramPackageIndex] || '').trim();
+            if (normalizeProductName(platform) !== normalizeProductName('Instagram') || !packageLabel) continue;
+            products.push({
+              name: 'Instagram',
+              duration: packageLabel,
+              price: parseIndonesianPrice(row[instagramPriceIndex])
+            });
+          }
         }
         return products;
       }
@@ -3164,7 +3199,14 @@
                 </div>
                 ${isSocialMediaProduct
                   ? `<div class="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3">
-                      <p class="text-sm font-bold text-emerald-700">Daftar Layanan Instagram</p>
+                      <p class="text-[11px] leading-relaxed text-emerald-800">
+                        Tersedia untuk Followers, Like, View, Komen Custom, Reel Instagram, dan Story Instagram.
+                      </p>
+                      <details class="mt-2 instagram-price-list">
+                      <summary class="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-bold text-emerald-700">
+                        <span>Daftar Layanan Instagram</span>
+                        <span class="instagram-price-toggle text-[10px] font-semibold px-2 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-800">Tampilkan</span>
+                      </summary>
                       <div class="mt-2 space-y-1.5">
                         ${socialServices.map(service => `
                           <div class="flex items-start justify-between gap-2 rounded-lg bg-white border border-emerald-200 px-2.5 py-2">
@@ -3173,16 +3215,19 @@
                           </div>
                         `).join('')}
                       </div>
+                      </details>
                     </div>`
                   : `<p class="text-xs text-slate-400 leading-relaxed">${escapeHtml(prod.desc || '')}</p>`}
-                <div class="flex flex-wrap gap-2 pt-1">
-                  <span class="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
-                    Stok: ${Math.max(0, Number(prod.stock || 0)).toLocaleString('id-ID')}
-                  </span>
-                  <span class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
-                    Terjual: ${Math.max(0, Number(prod.sold || 0)).toLocaleString('id-ID')}
-                  </span>
-                </div>
+                ${isSocialMediaProduct ? '' : `
+                  <div class="flex flex-wrap gap-2 pt-1">
+                    <span class="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
+                      Stok: ${Math.max(0, Number(prod.stock || 0)).toLocaleString('id-ID')}
+                    </span>
+                    <span class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                      Terjual: ${Math.max(0, Number(prod.sold || 0)).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                `}
                 ${isSocialMediaProduct ? '' : `
                   <div class="flex flex-wrap gap-1.5 pt-1">
                     ${(prod.packages || []).map(pk => `
@@ -3200,6 +3245,15 @@
             </article>
           `;
         }).join('');
+
+        grid.querySelectorAll('.instagram-price-list').forEach(details => {
+          const toggle = details.querySelector('.instagram-price-toggle');
+          const updateToggleLabel = () => {
+            if (toggle) toggle.textContent = details.open ? 'Minimalkan' : 'Tampilkan';
+          };
+          details.addEventListener('toggle', updateToggleLabel);
+          updateToggleLabel();
+        });
 
         grid.querySelectorAll('.order-prod-btn').forEach(btn => {
           btn.addEventListener('click', () => {

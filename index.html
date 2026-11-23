@@ -1266,7 +1266,7 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toastBox" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-xl border border-emerald-500/40 bg-cardbg px-4 py-3 text-xs sm:text-sm font-medium text-white shadow-xl"></div>
+    <div id="toastBox" class="fixed bottom-5 right-5 z-[60] hidden max-w-sm rounded-xl border border-emerald-300 bg-emerald-400 px-4 py-3 text-xs sm:text-sm font-bold text-slate-950 shadow-xl"></div>
 
     <script>
       const STORAGE_KEY = 'zhrs_project_spa_clean_v1';
@@ -2985,6 +2985,16 @@
       function showToast(msg) {
         const box = document.getElementById('toastBox');
         box.textContent = msg;
+        const isError = /gagal|salah|tidak dapat|tidak valid|melebihi|wajib|failed|ditolak/i.test(msg);
+        box.classList.remove(
+          'border-emerald-300', 'bg-emerald-400', 'text-slate-950',
+          'border-rose-300', 'bg-rose-500', 'text-white'
+        );
+        if (isError) {
+          box.classList.add('border-rose-300', 'bg-rose-500', 'text-white');
+        } else {
+          box.classList.add('border-emerald-300', 'bg-emerald-400', 'text-slate-950');
+        }
         box.classList.remove('hidden');
         clearTimeout(showToast._timer);
         showToast._timer = setTimeout(() => {

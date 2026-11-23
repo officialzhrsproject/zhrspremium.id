@@ -1146,12 +1146,20 @@
               <label class="block text-xs font-medium text-slate-300 mb-1">Jam Operasional</label>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label for="cfgOpeningTime" class="block text-[11px] text-slate-500 mb-1">Jam Buka</label>
-                  <input id="cfgOpeningTime" type="text" inputmode="text" placeholder="HH:mm" required title="Gunakan format HH:mm, misalnya 08:00" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <label for="cfgOpeningHour" class="block text-[11px] text-slate-500 mb-1">Jam Buka</label>
+                  <div class="flex items-center gap-2">
+                    <select id="cfgOpeningHour" required aria-label="Jam buka - jam" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white"></select>
+                    <span class="text-sm text-slate-400">:</span>
+                    <select id="cfgOpeningMinute" required aria-label="Jam buka - menit" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white"></select>
+                  </div>
                 </div>
                 <div>
-                  <label for="cfgClosingTime" class="block text-[11px] text-slate-500 mb-1">Jam Tutup</label>
-                  <input id="cfgClosingTime" type="text" inputmode="text" placeholder="HH:mm" required title="Gunakan format HH:mm, misalnya 20:00" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <label for="cfgClosingHour" class="block text-[11px] text-slate-500 mb-1">Jam Tutup</label>
+                  <div class="flex items-center gap-2">
+                    <select id="cfgClosingHour" required aria-label="Jam tutup - jam" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white"></select>
+                    <span class="text-sm text-slate-400">:</span>
+                    <select id="cfgClosingMinute" required aria-label="Jam tutup - menit" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white"></select>
+                  </div>
                 </div>
               </div>
               <p id="operatingHoursSyncStatus" role="status" aria-live="polite" class="mt-2 text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
@@ -1602,7 +1610,7 @@
               category: SOCIAL_MEDIA_PRODUCT_IDS.has(product.id)
                 ? SOCIAL_MEDIA_CATEGORY
                 : product.category,
-              stock: initialStock - sold,
+              stock: existingStock,
               sold,
               initialStock
             };
@@ -1846,6 +1854,43 @@
         return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
       }
 
+      function initializeOperatingHoursPickers() {
+        const hourOptions = Array.from({ length: 25 }, (_, hour) => String(hour).padStart(2, '0'));
+        const minuteOptions = Array.from({ length: 60 }, (_, minute) => String(minute).padStart(2, '0'));
+        ['Opening', 'Closing'].forEach(prefix => {
+          const hourSelect = document.getElementById(`cfg${prefix}Hour`);
+          const minuteSelect = document.getElementById(`cfg${prefix}Minute`);
+          hourSelect.innerHTML = hourOptions.map(value => `<option value="${value}">${value}</option>`).join('');
+          minuteSelect.innerHTML = minuteOptions.map(value => `<option value="${value}">${value}</option>`).join('');
+          hourSelect.addEventListener('change', () => {
+            if (hourSelect.value === '24') {
+              minuteSelect.value = '00';
+              minuteSelect.disabled = true;
+            } else {
+              minuteSelect.disabled = false;
+            }
+          });
+        });
+      }
+
+      function getOperatingTime(prefix) {
+        const hour = document.getElementById(`cfg${prefix}Hour`).value;
+        const minute = document.getElementById(`cfg${prefix}Minute`).value;
+        return parseSheetTime(`${hour}:${minute}`);
+      }
+
+      function setOperatingTime(prefix, value) {
+        const time = parseSheetTime(value);
+        if (!time) return false;
+        const [hour, minute] = time.split(':');
+        const hourSelect = document.getElementById(`cfg${prefix}Hour`);
+        const minuteSelect = document.getElementById(`cfg${prefix}Minute`);
+        hourSelect.value = hour;
+        minuteSelect.value = minute;
+        minuteSelect.disabled = hour === '24';
+        return hourSelect.value === hour && minuteSelect.value === minute;
+      }
+
       function readGoogleSheetOperatingHours(csvText) {
         const rows = parseCsvRows(csvText);
         const sectionIndex = rows.findIndex(row =>
@@ -1942,8 +1987,7 @@
               ? sold + remainingStock
               : null;
           if (initialStock === null || remainingStock === null || sold === null ||
-              remainingStock > initialStock || sold < 0 || sold > initialStock ||
-              initialStock - sold !== remainingStock) {
+              remainingStock > initialStock || sold < 0 || sold > initialStock) {
             throw new Error(`Data stok untuk "${name}" tidak valid.`);
           }
           products.push({ name, initialStock, stock: remainingStock, sold });
@@ -2010,10 +2054,8 @@
 
       function hasUnsavedOperatingHoursEdits() {
         if (!isAdminUnlocked) return false;
-        const openingInput = document.getElementById('cfgOpeningTime');
-        const closingInput = document.getElementById('cfgClosingTime');
-        return parseSheetTime(openingInput.value) !== state.brand.openingTime ||
-          parseSheetTime(closingInput.value) !== state.brand.closingTime;
+        return getOperatingTime('Opening') !== state.brand.openingTime ||
+          getOperatingTime('Closing') !== state.brand.closingTime;
       }
 
       async function syncFromGoogleSheetOperatingHours() {
@@ -2069,8 +2111,8 @@
             }
           }
 
-          document.getElementById('cfgOpeningTime').value = hours.openingTime;
-          document.getElementById('cfgClosingTime').value = hours.closingTime;
+          setOperatingTime('Opening', hours.openingTime);
+          setOperatingTime('Closing', hours.closingTime);
           renderStoreStatus();
           const syncedAt = new Date().toLocaleTimeString('id-ID');
           updateOperatingHoursSyncStatus(
@@ -3447,8 +3489,8 @@
       function syncAdminForms() {
         document.getElementById('cfgBrandName').value = state.brand.name;
         document.getElementById('cfgTagline').value = state.brand.tagline;
-        document.getElementById('cfgOpeningTime').value = state.brand.openingTime || DEFAULT_STATE.brand.openingTime;
-        document.getElementById('cfgClosingTime').value = state.brand.closingTime || DEFAULT_STATE.brand.closingTime;
+        setOperatingTime('Opening', state.brand.openingTime || DEFAULT_STATE.brand.openingTime);
+        setOperatingTime('Closing', state.brand.closingTime || DEFAULT_STATE.brand.closingTime);
         document.getElementById('cfgBannerBadge').value = state.brand.bannerBadge;
         document.getElementById('cfgBannerTitle').value = state.brand.bannerTitle;
         document.getElementById('cfgBannerDesc').value = state.brand.bannerDesc;
@@ -3648,7 +3690,7 @@
                     <input type="number" min="0" step="1" required data-sold-prod="${escapeHtml(prod.id)}" data-stock-prod-id="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.sold || 0))}" class="sold-prod-input mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-white" />
                   </label>
                   <label class="text-[11px] text-slate-400">Sisa Stok
-                    <input type="number" min="0" step="1" readonly data-remaining-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-cardbg border border-line text-xs text-slate-300" />
+                    <input type="number" min="0" step="1" readonly aria-readonly="true" title="Dibaca otomatis dari kolom Sisa Stok di Excel" data-remaining-stock-prod="${escapeHtml(prod.id)}" value="${Math.max(0, Number(prod.stock || 0))}" class="mt-1 block w-20 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 text-xs text-slate-500 cursor-not-allowed" />
                   </label>
                   <button type="button" data-save-stock-prod="${escapeHtml(prod.id)}" class="save-stock-btn mb-px px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-600">
                     Simpan
@@ -3658,20 +3700,6 @@
             </div>
           `;
         }).join('');
-
-        list.querySelectorAll('.initial-stock-prod-input, .sold-prod-input').forEach(input => {
-          input.addEventListener('input', () => {
-            const productId = input.dataset.stockProdId;
-            const initialStockInput = list.querySelector(`[data-initial-stock-prod="${productId}"]`);
-            const soldInput = list.querySelector(`[data-sold-prod="${productId}"]`);
-            const remainingStockInput = list.querySelector(`[data-remaining-stock-prod="${productId}"]`);
-            if (!initialStockInput || !soldInput || !remainingStockInput) return;
-            const initialStock = Number(initialStockInput.value);
-            const sold = Number(soldInput.value);
-            if (!Number.isFinite(initialStock) || !Number.isFinite(sold)) return;
-            remainingStockInput.value = String(Math.max(0, initialStock - sold));
-          });
-        });
 
         list.querySelectorAll('.save-stock-btn').forEach(btn => {
           btn.addEventListener('click', async () => {
@@ -3700,14 +3728,11 @@
               showToast('Jumlah terjual tidak boleh melebihi stok awal.');
               return;
             }
-            const nextStock = nextInitialStock - nextSold;
-
             const previousInitialStock = target.initialStock;
             const previousSold = target.sold;
             const previousStock = target.stock;
             target.initialStock = nextInitialStock;
             target.sold = nextSold;
-            target.stock = nextStock;
 
             if (!saveState()) {
               target.initialStock = previousInitialStock;
@@ -3775,7 +3800,6 @@
           if (!initialStockInput || !soldInput) return;
           product.initialStock = Number(initialStockInput.value);
           product.sold = Number(soldInput.value);
-          product.stock = product.initialStock - product.sold;
         });
 
         if (!saveState()) {
@@ -4175,8 +4199,8 @@
         e.preventDefault();
         if (!isAdminUnlocked) return;
 
-        const openingTime = parseSheetTime(document.getElementById('cfgOpeningTime').value);
-        const closingTime = parseSheetTime(document.getElementById('cfgClosingTime').value);
+        const openingTime = getOperatingTime('Opening');
+        const closingTime = getOperatingTime('Closing');
         if (!openingTime || !closingTime) {
           showToast('Jam buka dan jam tutup harus memakai format HH:mm yang valid.');
           return;
@@ -4283,6 +4307,7 @@
         });
       }
 
+      initializeOperatingHoursPickers();
       renderAll();
       initializeHeroCarousel();
       syncFromGoogleSheet();

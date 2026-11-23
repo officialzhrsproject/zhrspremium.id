@@ -1443,30 +1443,36 @@
       DEFAULT_STATE.products.push(...NEW_CATALOG_PRODUCTS);
 
       const SOCIAL_MEDIA_CATEGORY = 'Kebutuhan Sosmed dan Jasa';
-      const SOCIAL_MEDIA_PLATFORMS = ['Instagram', 'TikTok', 'WhatsApp', 'Shopee', 'Threads', 'Facebook'];
-      const SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_followers', 'p_sosmed_likes', 'p_sosmed_shares']);
+      const INSTAGRAM_PRICE_PACKAGE_LABELS = [
+        'Instagram Followers - 100 Foll Luar',
+        'Instagram Followers - 100 Foll Indo',
+        'Instagram Followers - 100 Buzzer',
+        'Instagram Likes - 100 Like Luar',
+        'Instagram Likes - 100 Like Indo',
+        'Instagram Views - 100 View',
+        'Instagram Custom Comments - 10 Indo',
+        'Instagram Custom Comments - 10 Luar',
+        'Instagram Reels Views - 10 View',
+        'Instagram Reels Save - 100 Save',
+        'Instagram Reels Repost - 10 Repost',
+        'Instagram Story Views - 100 View',
+        'Instagram Story Likes - 100 Like',
+        'Instagram Story Polling Vote - 100'
+      ];
+      const REMOVED_SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_likes', 'p_sosmed_shares']);
+      const SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_followers']);
       const NEW_SOCIAL_MEDIA_PRODUCTS = [
         {
           id: 'p_sosmed_followers',
-          name: 'Followers',
-          desc: 'Layanan followers untuk Instagram, TikTok, WhatsApp, Shopee, Threads, dan Facebook. Pilih platform, lalu tulis jumlah dan tautan akun pada catatan order.'
-        },
-        {
-          id: 'p_sosmed_likes',
-          name: 'Like',
-          desc: 'Layanan like untuk Instagram, TikTok, WhatsApp, Shopee, Threads, dan Facebook. Pilih platform, lalu tulis jumlah dan tautan konten pada catatan order.'
-        },
-        {
-          id: 'p_sosmed_shares',
-          name: 'Share',
-          desc: 'Layanan share untuk Instagram, TikTok, WhatsApp, Shopee, Threads, dan Facebook. Pilih platform, lalu tulis jumlah dan tautan konten pada catatan order.'
+          name: 'Instagram',
+          desc: 'Pilih layanan Instagram dan paket yang dibutuhkan. Cantumkan tautan akun atau detail pesanan pada catatan.'
         }
       ].map(product => ({
         ...product,
         category: SOCIAL_MEDIA_CATEGORY,
         stock: 0,
         sold: 0,
-        packages: SOCIAL_MEDIA_PLATFORMS.map(platform => ({ label: platform, price: 0 }))
+        packages: INSTAGRAM_PRICE_PACKAGE_LABELS.map(label => ({ label, price: 0 }))
       }));
 
       DEFAULT_STATE.products.push(...NEW_SOCIAL_MEDIA_PRODUCTS);
@@ -1587,6 +1593,10 @@
           }
           const savedProducts = Array.isArray(parsed.products) && parsed.products.length
             ? parsed.products
+                .filter(product => !REMOVED_SOCIAL_MEDIA_PRODUCT_IDS.has(product.id))
+                .map(product => product.id === 'p_sosmed_followers'
+                  ? { ...product, name: 'Instagram' }
+                  : product)
             : cloneDefault().products;
           const savedProductIds = new Set(savedProducts.map(product => product.id));
           const products = [
@@ -1599,6 +1609,19 @@
               }))
           ].map(product => {
             const defaultProduct = DEFAULT_STATE.products.find(item => item.id === product.id);
+            const migratedProduct = product.id === 'p_sosmed_followers'
+              ? {
+                  ...product,
+                  name: 'Instagram',
+                  desc: defaultProduct?.desc || product.desc,
+                  packages: INSTAGRAM_PRICE_PACKAGE_LABELS.map(label => ({
+                    label,
+                    price: Math.max(0, Number(
+                      (product.packages || []).find(pkg => pkg.label === label)?.price || 0
+                    ))
+                  }))
+                }
+              : product;
             const existingStock = Math.max(0, Number(product.stock ?? defaultProduct?.stock ?? 0));
             const sold = Math.max(0, Number(product.sold ?? defaultProduct?.sold ?? 0));
             const savedInitialStock = Number(product.initialStock);
@@ -1606,7 +1629,7 @@
               ? savedInitialStock
               : existingStock + sold;
             return {
-              ...normalizeProductDurations(product),
+              ...normalizeProductDurations(migratedProduct),
               category: SOCIAL_MEDIA_PRODUCT_IDS.has(product.id)
                 ? SOCIAL_MEDIA_CATEGORY
                 : product.category,
@@ -2671,19 +2694,18 @@
               normalizeProductName(row.name) === normalizeProductName(product.name)
             );
             const priceByDuration = new Map();
-            rowsForProduct.forEach(row => {
-              const duration = canonicalDuration(row.duration);
-              const allowedLabels = normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
+            const allowedLabels = SOCIAL_MEDIA_PRODUCT_IDS.has(product.id)
+              ? INSTAGRAM_PRICE_PACKAGE_LABELS
+              : normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
                 ? NETFLIX_PACKAGE_LABELS
                 : STANDARD_PACKAGE_LABELS;
+            rowsForProduct.forEach(row => {
+              const duration = canonicalDuration(row.duration);
               if (allowedLabels.includes(duration)) {
                 priceByDuration.set(duration, Math.max(0, Number(row.price || 0)));
               }
             });
 
-            const allowedLabels = normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
-              ? NETFLIX_PACKAGE_LABELS
-              : STANDARD_PACKAGE_LABELS;
             const nextPackages = allowedLabels.map(label => ({
               label,
               price: priceByDuration.has(label)
@@ -2823,14 +2845,8 @@
           return `<span class="product-logo logo-custom" aria-label="Logo ${escapeHtml(prod.name)}"><img src="${escapeHtml(prod.image)}" alt="${escapeHtml(prod.name)}" /></span>`;
         }
         const name = String(prod?.name || '').toLowerCase();
-        if (prod?.id === 'p_sosmed_followers' || name === 'followers') {
-          return `<span class="product-logo logo-custom" aria-label="Logo Followers"><img src="${PRODUCT_LOGO_ASSETS.sosmedFollowers}" alt="Followers" /></span>`;
-        }
-        if (prod?.id === 'p_sosmed_likes' || name === 'like' || name === 'likes') {
-          return `<span class="product-logo logo-custom" aria-label="Logo Like"><img src="${PRODUCT_LOGO_ASSETS.sosmedLike}" alt="Like" /></span>`;
-        }
-        if (prod?.id === 'p_sosmed_shares' || name === 'share' || name === 'shares') {
-          return `<span class="product-logo logo-custom" aria-label="Logo Share"><img src="${PRODUCT_LOGO_ASSETS.sosmedShare}" alt="Share" /></span>`;
+        if (prod?.id === 'p_sosmed_followers' || name === 'instagram') {
+          return `<span class="product-logo logo-custom" aria-label="Logo Instagram"><img src="${EMBEDDED_ASSETS['social-instagram.svg']}" alt="Instagram" /></span>`;
         }
         if (prod?.id === 'p_new_loklok' || name.includes('loklok')) {
           return `<span class="product-logo logo-loklok" aria-label="Logo Loklok"><img src="${PRODUCT_LOGO_ASSETS.loklok}" alt="Loklok" /></span>`;
@@ -3120,13 +3136,9 @@
         }
 
         grid.innerHTML = filtered.map(prod => {
-          const isSocialMediaProduct = [
-            'p_sosmed_followers',
-            'p_sosmed_likes',
-            'p_sosmed_shares'
-          ].includes(prod.id);
-          const socialPlatforms = isSocialMediaProduct
-            ? (prod.packages || []).map(pkg => pkg.label).filter(Boolean)
+          const isSocialMediaProduct = SOCIAL_MEDIA_PRODUCT_IDS.has(prod.id);
+          const socialServices = isSocialMediaProduct
+            ? (prod.packages || []).filter(pkg => pkg.label)
             : [];
           const prices = (prod.packages || []).map(pk => Number(pk.price || 0));
           const minPrice = prices.length ? Math.min(...prices) : 0;
@@ -3152,12 +3164,13 @@
                 </div>
                 ${isSocialMediaProduct
                   ? `<div class="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3">
-                      <p class="text-sm font-bold text-emerald-700">Tersedia untuk</p>
-                      <div class="mt-2 flex flex-wrap gap-1.5">
-                        ${socialPlatforms.map(platform => `
-                          <span class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-white border border-emerald-200 text-emerald-800">
-                            ${escapeHtml(platform)}
-                          </span>
+                      <p class="text-sm font-bold text-emerald-700">Daftar Layanan Instagram</p>
+                      <div class="mt-2 space-y-1.5">
+                        ${socialServices.map(service => `
+                          <div class="flex items-start justify-between gap-2 rounded-lg bg-white border border-emerald-200 px-2.5 py-2">
+                            <span class="text-[10px] font-semibold leading-relaxed text-emerald-900">${escapeHtml(service.label)}</span>
+                            <span class="text-[10px] font-bold text-emerald-800 whitespace-nowrap">${formatProductPrice(service.price)}</span>
+                          </div>
                         `).join('')}
                       </div>
                     </div>`
@@ -3626,12 +3639,18 @@
         });
       }
 
+      function getStockTrackedProducts() {
+        return state.products.filter(product => !SOCIAL_MEDIA_PRODUCT_IDS.has(product.id));
+      }
+
       function renderAdminProducts() {
         renderAdminPrices();
         renderTestimonialProductOptions();
         const list = document.getElementById('adminProductList');
+        const stockProducts = productsInCategoryOrder()
+          .filter(product => !SOCIAL_MEDIA_PRODUCT_IDS.has(product.id));
         const totalSold = state.products.reduce((sum, prod) => sum + Math.max(0, Number(prod.sold || 0)), 0);
-        const totalStock = state.products.reduce((sum, prod) => sum + Math.max(0, Number(prod.stock || 0)), 0);
+        const totalStock = stockProducts.reduce((sum, prod) => sum + Math.max(0, Number(prod.stock || 0)), 0);
         const totalSales = state.products.reduce((sum, prod) => {
           const packagePrice = Math.min(...((prod.packages || []).map(pkg => Number(pkg.price || 0)).filter(price => price >= 0)));
           const basePrice = Number.isFinite(packagePrice) ? packagePrice : 0;
@@ -3670,7 +3689,7 @@
         salesDashboardToggle.textContent = isProductSalesDashboardMinimized ? 'Tampilkan' : 'Minimalkan';
         salesDashboardToggle.setAttribute('aria-expanded', String(!isProductSalesDashboardMinimized));
 
-        list.innerHTML = productsInCategoryOrder().map(prod => {
+        list.innerHTML = stockProducts.map(prod => {
           const packages = Array.isArray(prod.packages) ? prod.packages : [];
           return `
             <div class="rounded-xl border border-line bg-slatebg p-3.5 space-y-3">
@@ -3771,6 +3790,7 @@
       document.getElementById('saveProductStockBtn').addEventListener('click', async () => {
         if (!isAdminUnlocked) return;
 
+        const stockProducts = getStockTrackedProducts();
         const inputs = Array.from(document.querySelectorAll('#adminProductList .initial-stock-prod-input, #adminProductList .sold-prod-input'));
         const invalidInput = inputs.find(input => !input.checkValidity() || !Number.isSafeInteger(Number(input.value)));
         if (invalidInput) {
@@ -3779,7 +3799,7 @@
           return;
         }
 
-        const invalidProduct = state.products.find(product => {
+        const invalidProduct = stockProducts.find(product => {
           const initialStockInput = document.querySelector(`[data-initial-stock-prod="${product.id}"]`);
           const soldInput = document.querySelector(`[data-sold-prod="${product.id}"]`);
           return !initialStockInput || !soldInput ||
@@ -3794,7 +3814,7 @@
           ...product,
           packages: Array.isArray(product.packages) ? product.packages.map(pkg => ({ ...pkg })) : []
         }));
-        state.products.forEach(product => {
+        stockProducts.forEach(product => {
           const initialStockInput = document.querySelector(`[data-initial-stock-prod="${product.id}"]`);
           const soldInput = document.querySelector(`[data-sold-prod="${product.id}"]`);
           if (!initialStockInput || !soldInput) return;
@@ -3812,7 +3832,7 @@
 
         isStockWriteInProgress = true;
         try {
-          const savedToSheet = await syncStockToGoogleSheet(state.products);
+          const savedToSheet = await syncStockToGoogleSheet(stockProducts);
           if (!savedToSheet) throw new Error('URL endpoint Google Sheets belum diatur.');
         } catch (error) {
           state.products = previousProducts;

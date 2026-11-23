@@ -1230,6 +1230,8 @@
 
         <!-- Tab 3: 3 WhatsApp Channels -->
         <div id="adminTab-wa" class="admin-tab-pane hidden space-y-4">
+          <p class="text-xs text-slate-400">Status ON/OFF mengikuti kolom Status di Google Sheets.</p>
+          <p id="waSheetSyncStatus" role="status" aria-live="polite" class="text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
           <form id="waChannelsForm" class="space-y-3">
             <div id="adminWaInputs" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
             <div class="flex justify-end">
@@ -1242,7 +1244,8 @@
 
         <!-- Tab 4: Social Media (Hide Feature) -->
         <div id="adminTab-social" class="admin-tab-pane hidden space-y-4">
-          <p class="text-xs text-slate-400">Ubah nama akun atau tautan setiap kanal, lalu simpan. Gunakan tombol Hide / Show untuk mengatur tampilnya kanal di halaman publik.</p>
+          <p class="text-xs text-slate-400">Status kanal di halaman publik mengikuti kolom Status pada Google Sheets.</p>
+          <p id="socialSheetSyncStatus" role="status" aria-live="polite" class="text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
           <div id="adminSocialList" class="space-y-2.5"></div>
         </div>
 
@@ -1619,6 +1622,8 @@
       let isProductSalesDashboardMinimized = false;
       let isStockSyncInProgress = false;
       let isOperatingHoursSyncInProgress = false;
+      let isWhatsAppSyncInProgress = false;
+      let isSocialSyncInProgress = false;
       let syncedSheetTotalRevenue = null;
       let searchQuery = '';
       let isAdminUnlocked = false;
@@ -1716,10 +1721,10 @@
           const candidatePhoneIndex = headers.findIndex(header =>
             ['nomor whatsapp', 'nomor wa', 'nomor hp', 'whatsapp', 'phone'].includes(header)
           );
-          const candidateStatusIndex = headers.findIndex(header =>
-            ['status', 'status kanal', 'aktif', 'on off'].includes(header)
+          const candidateStatusIndex = headers.findIndex((header, index) =>
+            index > candidatePhoneIndex && ['status', 'status kanal', 'aktif', 'on off'].includes(header)
           );
-          if (candidateNameIndex >= 0 && candidatePhoneIndex >= 0) {
+          if (candidateNameIndex >= 0 && candidatePhoneIndex >= 0 && candidateStatusIndex >= 0) {
             nameIndex = candidateNameIndex;
             phoneIndex = candidatePhoneIndex;
             statusIndex = candidateStatusIndex;
@@ -1728,7 +1733,9 @@
           }
         }
 
-        if (headerRowIndex < 0) return [];
+        if (headerRowIndex < 0) {
+          throw new Error('Kolom nama, nomor, dan status admin WhatsApp tidak ditemukan di sheet.');
+        }
 
         const channels = [];
         for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
@@ -1916,6 +1923,15 @@
 
       function updateOperatingHoursSyncStatus(message, error) {
         const status = document.getElementById('operatingHoursSyncStatus');
+        if (!status) return;
+        status.textContent = message;
+        status.title = error ? String(error.message || error) : '';
+        status.classList.toggle('text-rose-600', Boolean(error));
+        status.classList.toggle('text-slate-500', !error);
+      }
+
+      function updateSheetSyncStatus(elementId, message, error) {
+        const status = document.getElementById(elementId);
         if (!status) return;
         status.textContent = message;
         status.title = error ? String(error.message || error) : '';
@@ -2119,11 +2135,11 @@
           const candidateAccountIndex = headers.findIndex(header =>
             ['username tautan', 'username', 'tautan profil', 'tautan'].includes(header)
           );
-          const candidateStatusIndex = headers.findIndex(header =>
-            ['status', 'aktif', 'on off'].includes(header)
+          const candidateStatusIndex = headers.findIndex((header, index) =>
+            index > candidateAccountIndex && ['status', 'aktif', 'on off'].includes(header)
           );
 
-          if (candidatePlatformIndex >= 0 && candidateAccountIndex >= 0) {
+          if (candidatePlatformIndex >= 0 && candidateAccountIndex >= 0 && candidateStatusIndex >= 0) {
             platformIndex = candidatePlatformIndex;
             accountIndex = candidateAccountIndex;
             statusIndex = candidateStatusIndex;
@@ -2132,7 +2148,9 @@
           }
         }
 
-        if (headerRowIndex < 0) return [];
+        if (headerRowIndex < 0) {
+          throw new Error('Kolom platform, tautan, dan status media sosial tidak ditemukan di sheet.');
+        }
 
         const socialMap = {
           instagram: 'soc_ig',
@@ -2198,114 +2216,164 @@
       }
 
       async function syncFromGoogleSheetSocials() {
-        const csvUrls = [
-          `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
-          `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
-        ];
-
-        for (const csvUrl of csvUrls) {
-          try {
-            const response = await fetch(csvUrl, {
-              method: 'GET',
-              mode: 'cors',
-              cache: 'no-store'
-            });
-            if (!response.ok) continue;
-
-            const socials = readGoogleSheetSocials(await response.text());
-            if (!socials.length) continue;
-
-            let changed = false;
-            socials.forEach(sheetSocial => {
-              const current = state.socials.find(social => social.id === sheetSocial.id);
-              if (!current) {
-                state.socials.push(sheetSocial);
-                changed = true;
-                return;
-              }
-              ['name', 'handle', 'url', 'hidden'].forEach(field => {
-                if (current[field] !== sheetSocial[field]) {
-                  current[field] = sheetSocial[field];
-                  changed = true;
-                }
+        if (isSocialSyncInProgress) return;
+        isSocialSyncInProgress = true;
+        try {
+          const timestamp = Date.now();
+          const csvUrls = [
+            `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${timestamp}`,
+            `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${timestamp}`
+          ];
+          let socials = null;
+          let lastError = null;
+          for (const csvUrl of csvUrls) {
+            try {
+              const response = await fetch(csvUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-store'
               });
-            });
-
-            if (changed) {
-              saveState();
-              renderSocials();
-              if (!document.getElementById('adminSocialList').closest('.admin-tab-pane').classList.contains('hidden')) {
-                renderAdminSocials();
+              if (!response.ok) {
+                throw new Error(`Google Sheets mengembalikan status ${response.status}.`);
               }
+              socials = readGoogleSheetSocials(await response.text());
+              if (!socials.length) throw new Error('Data status media sosial tidak ditemukan di sheet.');
+              break;
+            } catch (error) {
+              lastError = error;
             }
-            return;
-          } catch (_) {}
+          }
+          if (!socials) {
+            throw lastError || new Error('Tidak dapat membaca status media sosial dari Google Sheets.');
+          }
+
+          const previousSocials = state.socials.map(social => ({ ...social }));
+          let changed = false;
+          socials.forEach(sheetSocial => {
+            const current = state.socials.find(social => social.id === sheetSocial.id);
+            if (!current) {
+              state.socials.push(sheetSocial);
+              changed = true;
+              return;
+            }
+            ['name', 'handle', 'url', 'hidden'].forEach(field => {
+              if (current[field] !== sheetSocial[field]) {
+                current[field] = sheetSocial[field];
+                changed = true;
+              }
+            });
+          });
+
+          if (changed) {
+            if (!saveState()) {
+              state.socials = previousSocials;
+              throw new Error('Status media sosial gagal disimpan di browser ini.');
+            }
+            renderSocials();
+            if (isAdminUnlocked) renderAdminSocials();
+          }
+          const activeCount = socials.filter(social => !social.hidden).length;
+          updateSheetSyncStatus(
+            'socialSheetSyncStatus',
+            `Tersinkron dari Excel • ${activeCount} kanal ON • ${new Date().toLocaleTimeString('id-ID')}`
+          );
+        } catch (error) {
+          updateSheetSyncStatus('socialSheetSyncStatus', 'Sinkron status gagal; mencoba lagi otomatis.', error);
+        } finally {
+          isSocialSyncInProgress = false;
         }
       }
 
       async function syncFromGoogleSheetWhatsApp() {
-        const csvUrls = [
-          `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${Date.now()}`,
-          `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${Date.now()}`
-        ];
-
-        for (const csvUrl of csvUrls) {
-          try {
-            const response = await fetch(csvUrl, {
-              method: 'GET',
-              mode: 'cors',
-              cache: 'no-store'
-            });
-            if (!response.ok) continue;
-            const channels = readGoogleSheetWhatsApp(await response.text());
-            if (!channels.length) continue;
-
-            let changed = false;
-            channels.forEach((channel, index) => {
-              const current = state.waChannels[index];
-              if (!current) {
-                state.waChannels[index] = channel;
-                changed = true;
-                return;
-              }
-              if (current.id !== channel.id) {
-                current.id = channel.id;
-                changed = true;
-              }
-              ['name', 'phone', 'active'].forEach(field => {
-                if (current[field] !== channel[field]) {
-                  current[field] = channel[field];
-                  changed = true;
-                }
+        if (isWhatsAppSyncInProgress) return;
+        isWhatsAppSyncInProgress = true;
+        try {
+          const timestamp = Date.now();
+          const csvUrls = [
+            `${GOOGLE_SHEET_DASHBOARD_CSV_URL}&t=${timestamp}`,
+            `https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=0&t=${timestamp}`
+          ];
+          let channels = null;
+          let lastError = null;
+          for (const csvUrl of csvUrls) {
+            try {
+              const response = await fetch(csvUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-store'
               });
-              if (current.note !== channel.note) {
-                current.note = channel.note;
-                changed = true;
+              if (!response.ok) {
+                throw new Error(`Google Sheets mengembalikan status ${response.status}.`);
               }
-            });
+              channels = readGoogleSheetWhatsApp(await response.text());
+              if (!channels.length) throw new Error('Data admin WhatsApp tidak ditemukan di sheet.');
+              break;
+            } catch (error) {
+              lastError = error;
+            }
+          }
+          if (!channels) {
+            throw lastError || new Error('Tidak dapat membaca data admin WhatsApp dari Google Sheets.');
+          }
 
-            state.waChannels = state.waChannels.slice(0, 3);
-            while (state.waChannels.length < 3) {
-              state.waChannels.push({
-                id: `wa${state.waChannels.length + 1}`,
-                name: `Admin ${state.waChannels.length + 1}`,
-                phone: '',
-                note: '',
-                active: false
-              });
+          const previousChannels = state.waChannels.map(channel => ({ ...channel }));
+          let changed = false;
+          channels.forEach((channel, index) => {
+            const current = state.waChannels[index];
+            if (!current) {
+              state.waChannels[index] = channel;
+              changed = true;
+              return;
+            }
+            if (current.id !== channel.id) {
+              current.id = channel.id;
               changed = true;
             }
-
-            if (changed) {
-              saveState();
-              renderWaChannelButtons();
-              renderSocials();
-              if (!document.getElementById('adminWaInputs').closest('.admin-tab-pane').classList.contains('hidden')) {
-                renderAdminWaInputs();
+            ['name', 'phone', 'active'].forEach(field => {
+              if (current[field] !== channel[field]) {
+                current[field] = channel[field];
+                changed = true;
               }
+            });
+            if (current.note !== channel.note) {
+              current.note = channel.note;
+              changed = true;
             }
-            return;
-          } catch (_) {}
+          });
+
+          if (state.waChannels.length > 3) {
+            state.waChannels = state.waChannels.slice(0, 3);
+            changed = true;
+          }
+          while (state.waChannels.length < 3) {
+            state.waChannels.push({
+              id: `wa${state.waChannels.length + 1}`,
+              name: `Admin ${state.waChannels.length + 1}`,
+              phone: '',
+              note: '',
+              active: false
+            });
+            changed = true;
+          }
+
+          if (changed) {
+            if (!saveState()) {
+              state.waChannels = previousChannels;
+              throw new Error('Status admin WhatsApp gagal disimpan di browser ini.');
+            }
+            renderWaChannelButtons();
+            renderSocials();
+            if (isAdminUnlocked) renderAdminWaInputs();
+          }
+          const activeCount = channels.filter(channel => channel.active).length;
+          updateSheetSyncStatus(
+            'waSheetSyncStatus',
+            `Tersinkron dari Excel • ${activeCount} admin ON • ${new Date().toLocaleTimeString('id-ID')}`
+          );
+        } catch (error) {
+          updateSheetSyncStatus('waSheetSyncStatus', 'Sinkron status gagal; mencoba lagi otomatis.', error);
+        } finally {
+          isWhatsAppSyncInProgress = false;
         }
       }
 
@@ -3558,7 +3626,7 @@
             </div>
             <div class="border-t border-slate-200 pt-2.5 flex items-center justify-between gap-2">
               <span class="text-[11px] font-semibold text-slate-700">Status Kanal</span>
-              <button type="button" data-wa-idx="${idx}" data-active="${ch.active !== false}" aria-pressed="${ch.active !== false}" class="wa-toggle-btn inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition ${
+              <button type="button" disabled title="Status ON/OFF diatur melalui Google Sheets." data-wa-idx="${idx}" data-active="${ch.active !== false}" aria-pressed="${ch.active !== false}" class="wa-toggle-btn inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold opacity-80 cursor-not-allowed ${
                 ch.active !== false
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   : 'bg-rose-100 text-rose-800 border border-rose-300'
@@ -3571,20 +3639,6 @@
           </div>
         `).join('');
 
-        wrap.querySelectorAll('.wa-toggle-btn').forEach(button => {
-          button.addEventListener('click', () => {
-            const isActive = button.dataset.active !== 'true';
-            button.dataset.active = String(isActive);
-            button.setAttribute('aria-pressed', String(isActive));
-            button.className = `wa-toggle-btn inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition ${
-              isActive
-                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                : 'bg-rose-100 text-rose-800 border border-rose-300'
-            }`;
-            button.innerHTML = `<span class="w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}"></span>${isActive ? 'ON' : 'OFF'}`;
-            wrap.querySelector(`.wa-field[data-wa-idx="${button.dataset.waIdx}"][data-field="active"]`).value = String(isActive);
-          });
-        });
       }
 
       function renderAdminSocials() {
@@ -3594,14 +3648,14 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div class="text-sm font-bold text-white">${escapeHtml(soc.name)}</div>
-                <div class="text-[11px] ${soc.hidden ? 'text-amber-300' : 'text-emerald-400'}">${soc.hidden ? 'Disembunyikan (Hidden)' : 'Tampil di Publik'}</div>
+                <div class="text-[11px] ${soc.hidden ? 'text-rose-300' : 'text-emerald-400'}">${soc.hidden ? 'OFF • Disembunyikan oleh Excel' : 'ON • Tampil sesuai Excel'}</div>
               </div>
-              <button type="button" data-soc-id="${escapeHtml(soc.id)}" class="toggle-soc-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold ${
+              <button type="button" disabled title="Status ON/OFF diatur melalui Google Sheets." class="px-3.5 py-1.5 rounded-lg text-xs font-semibold opacity-80 cursor-not-allowed ${
                 soc.hidden
-                  ? 'bg-emerald-500 text-slate-950'
-                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-line'
+                  ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
               }">
-                ${soc.hidden ? 'Show' : 'Hide'}
+                ${soc.hidden ? 'OFF' : 'ON'}
               </button>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3620,18 +3674,6 @@
             Simpan Perubahan Media Sosial
           </button>
         `;
-
-        list.querySelectorAll('.toggle-soc-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const target = state.socials.find(s => s.id === btn.dataset.socId);
-            if (!target) return;
-            target.hidden = !target.hidden;
-            saveState();
-            renderSocials();
-            renderAdminSocials();
-            showToast(`${target.name} ${target.hidden ? 'disembunyikan' : 'ditampilkan'}.`);
-          });
-        });
 
         list.querySelector('#saveSocialSettingsBtn').addEventListener('click', () => {
           const updates = [...list.querySelectorAll('.social-field')].map(input => ({

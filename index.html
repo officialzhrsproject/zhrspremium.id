@@ -1225,6 +1225,7 @@
             </div>
             <div class="price-section-summary">Durasi sesuai Excel</div>
           </div>
+          <p id="priceSheetSyncStatus" role="status" aria-live="polite" class="text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
           <div id="adminPriceList" class="space-y-3 max-h-[70vh] overflow-y-auto pr-1"></div>
         </div>
 
@@ -1262,7 +1263,7 @@
     <script>
       const STORAGE_KEY = 'zhrs_project_spa_clean_v1';
       const ADMIN_PASS = 'zhrs2026';
-      const GOOGLE_SHEET_API_URL = '';
+      const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxuI7sowp7vVys--Mccd7HkJKa9NUMw5CiaBjXnSoVd_ZSDCjLE78Lr1lEQUMNfR2crAQ/exec';
       const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/export?format=csv&gid=1';
       const GOOGLE_SHEET_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=1';
       const GOOGLE_SHEET_DASHBOARD_CSV_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/export?format=csv&gid=0';
@@ -1664,10 +1665,14 @@
         const response = await fetch(GOOGLE_SHEET_API_URL, {
           method: 'POST',
           mode: 'cors',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body
         });
         if (!response.ok) throw new Error('Sheet menolak pembaruan.');
+        if (!(response.headers.get('content-type') || '').includes('application/json')) {
+          throw new Error('Endpoint tidak mengembalikan JSON. Periksa login Google dan izin deployment.');
+        }
         const result = await response.json();
         if (!result.ok) throw new Error(result.error || 'Gagal menyimpan ke Google Sheet.');
         return true;
@@ -2415,33 +2420,47 @@
         const rows = parseCsvRows(csvText);
         if (rows.length < 2) return [];
 
-        const headers = rows[0];
-        const nameIndex = findSheetColumn(headers, [
-          'Nama Aplikasi',
-          'Nama Produk',
-          'Nama Paket',
-          'Produk',
-          'Name'
-        ]);
-        const durationIndex = findSheetColumn(headers, [
-          'Durasi / Tipe',
-          'Durasi',
-          'Tipe',
-          'Paket',
-          'Nama Paket Lengkap'
-        ]);
-        const priceIndex = findSheetColumn(headers, [
-          'Harga Jual',
-          'Harga',
-          'Price'
-        ]);
-        if (nameIndex < 0 || durationIndex < 0 || priceIndex < 0) return [];
+        const nameHeaders = ['Nama Aplikasi', 'Nama Produk', 'Nama Paket', 'Produk', 'Name'];
+        const durationHeaders = ['Durasi / Tipe', 'Durasi', 'Tipe', 'Paket', 'Nama Paket Lengkap'];
+        const priceHeaders = ['Harga Jual', 'Harga', 'Price'];
+        let headerRowIndex = -1;
+        let nameIndex = -1;
+        let durationIndex = -1;
+        let priceIndex = -1;
 
-        return rows.slice(1).map(row => ({
-          name: String(row[nameIndex] || '').trim(),
-          duration: canonicalDuration(row[durationIndex]),
-          price: parseIndonesianPrice(row[priceIndex])
-        })).filter(row => row.name && row.duration);
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+          const headers = rows[rowIndex];
+          const candidateNameIndex = findSheetColumn(headers, nameHeaders);
+          const candidateDurationIndex = findSheetColumn(headers, durationHeaders);
+          const candidatePriceIndex = findSheetColumn(headers, priceHeaders);
+          if (candidateNameIndex < 0 || candidateDurationIndex < 0 || candidatePriceIndex < 0) continue;
+          headerRowIndex = rowIndex;
+          nameIndex = candidateNameIndex;
+          durationIndex = candidateDurationIndex;
+          priceIndex = candidatePriceIndex;
+          break;
+        }
+        if (headerRowIndex < 0) return [];
+
+        const products = [];
+        for (let rowIndex = headerRowIndex + 1; rowIndex < rows.length; rowIndex++) {
+          const row = rows[rowIndex];
+          const name = String(row[nameIndex] || '').trim();
+          const duration = String(row[durationIndex] || '').trim();
+          if (row.some(cell => /^total\s+paket\b/i.test(String(cell || '').trim()))) break;
+          if (normalizeSheetHeader(name) === 'jenis layanan' ||
+              normalizeSheetHeader(duration) === 'nama paket lengkap' ||
+              row.some(cell => normalizeSheetHeader(cell).startsWith('daftar harga layanan sosial media'))) {
+            break;
+          }
+          if (!name || !duration) continue;
+          products.push({
+            name,
+            duration: canonicalDuration(duration),
+            price: parseIndonesianPrice(row[priceIndex])
+          });
+        }
+        return products;
       }
 
       async function syncFromGoogleSheet() {
@@ -2449,14 +2468,17 @@
 
         try {
           let sheetRows = [];
+          let lastError = null;
 
-          if (GOOGLE_SHEET_API_URL) {
-            const response = await fetch(`${GOOGLE_SHEET_API_URL}?action=get&t=${Date.now()}`, {
-              method: 'GET',
-              mode: 'cors',
-              cache: 'no-store'
-            });
-            if (response.ok) {
+          if (GOOGLE_SHEET_API_URL && isAdminUnlocked) {
+            try {
+              const response = await fetch(`${GOOGLE_SHEET_API_URL}?action=get&t=${Date.now()}`, {
+                method: 'GET',
+                mode: 'cors',
+                credentials: 'include',
+                cache: 'no-store'
+              });
+              if (!response.ok) throw new Error(`Apps Script mengembalikan status ${response.status}.`);
               const result = await response.json();
               if (result.ok && Array.isArray(result.products)) {
                 sheetRows = result.products.map(row => {
@@ -2468,6 +2490,8 @@
                   }));
                 }).flat();
               }
+            } catch (error) {
+              lastError = error;
             }
           }
 
@@ -2483,21 +2507,35 @@
                   mode: 'cors',
                   cache: 'no-store'
                 });
-                if (!response.ok) continue;
-                const parsedRows = readDirectGoogleSheet(await response.text());
-                if (parsedRows.length) {
-                  sheetRows = parsedRows;
-                  break;
+                if (!response.ok) {
+                  throw new Error(`Google Sheets mengembalikan status ${response.status}.`);
                 }
-              } catch (_) {}
+                const parsedRows = readDirectGoogleSheet(await response.text());
+                if (!parsedRows.length) throw new Error('Data harga produk tidak ditemukan di sheet.');
+                sheetRows = parsedRows;
+                break;
+              } catch (error) {
+                lastError = error;
+              }
             }
           }
-          if (!sheetRows.length) return;
+          if (!sheetRows.length) {
+            throw lastError || new Error('Tidak dapat membaca daftar harga dari Google Sheets.');
+          }
 
           let changed = false;
           const sheetNames = new Set(sheetRows.map(row => normalizeProductName(row.name)));
-          state.products.forEach(product => {
-            if (!sheetNames.has(normalizeProductName(product.name))) return;
+          const matchingProducts = state.products.filter(product =>
+            sheetNames.has(normalizeProductName(product.name))
+          );
+          if (!matchingProducts.length) {
+            throw new Error('Nama produk di situs tidak cocok dengan daftar harga pada gid=1.');
+          }
+          const previousPackages = matchingProducts.map(product => ({
+            product,
+            packages: (product.packages || []).map(pkg => ({ ...pkg }))
+          }));
+          matchingProducts.forEach(product => {
 
             const rowsForProduct = sheetRows.filter(row =>
               normalizeProductName(row.name) === normalizeProductName(product.name)
@@ -2536,12 +2574,21 @@
           });
 
           if (changed) {
-            saveState();
+            if (!saveState()) {
+              previousPackages.forEach(({ product, packages }) => {
+                product.packages = packages;
+              });
+              throw new Error('Harga dari Google Sheets gagal disimpan di browser ini.');
+            }
             renderProducts();
             renderAdminProducts();
           }
-        } catch (_) {
-          // Keep the browser state usable when the sheet endpoint is temporarily unavailable.
+          updateSheetSyncStatus(
+            'priceSheetSyncStatus',
+            `Tersinkron dari Excel • ${matchingProducts.length} produk • ${sheetRows.length} paket • ${new Date().toLocaleTimeString('id-ID')}`
+          );
+        } catch (error) {
+          updateSheetSyncStatus('priceSheetSyncStatus', 'Sinkron harga gagal; mencoba lagi otomatis.', error);
         }
       }
 

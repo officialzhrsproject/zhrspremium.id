@@ -1222,11 +1222,11 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
               <h3 class="text-sm font-extrabold text-slate-950">Hasil Penjualan per Produk</h3>
-              <button id="toggleProductSalesDashboardBtn" type="button" aria-controls="productSalesDashboard" aria-expanded="true" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
-                Minimalkan
+              <button id="toggleProductSalesDashboardBtn" type="button" aria-controls="productSalesDashboard" aria-expanded="false" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
+                Tampilkan
               </button>
             </div>
-            <div id="productSalesDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            <div id="productSalesDashboard" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
           <div class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1289,7 +1289,6 @@
 
     <script>
       const STORAGE_KEY = 'zhrs_project_spa_clean_v1';
-      const ADMIN_PASS = 'zhrs2026';
       const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyBd7eQjDnbr4SloZ-BDVidBtXxGpLDkeNmGX0ys0OpJgyP-tVAb2rgFUCfHh-ar1iszg/exec';
       const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/export?format=csv&gid=1';
       const GOOGLE_SHEET_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=1';
@@ -1677,7 +1676,7 @@
       let activeCategory = 'Semua';
       let activeTag = '#Semua';
       let isTestimonialHistoryOpen = false;
-      let isProductSalesDashboardMinimized = false;
+      let isProductSalesDashboardMinimized = true;
       let isStockSyncInProgress = false;
       let isStockWriteInProgress = false;
       let isOperatingHoursSyncInProgress = false;
@@ -1687,6 +1686,7 @@
       let syncedSheetTotalRevenue = null;
       let searchQuery = '';
       let isAdminUnlocked = false;
+      let adminApiToken = '';
       let activeAdminTab = 'brand';
       let selectedOrderProduct = null;
       const PRODUCT_CATEGORY_ORDER = ['Streaming', 'Desain & Produktivitas', 'Editing', 'Musik', SOCIAL_MEDIA_CATEGORY];
@@ -1710,13 +1710,21 @@
       async function postToGoogleSheet(parameters) {
         if (!GOOGLE_SHEET_API_URL) return false;
 
+        const requestParameters = { ...parameters };
+        if (requestParameters.action !== 'adminLogin' && !requestParameters.adminToken) {
+          if (!adminApiToken) {
+            throw new Error('Sesi admin tidak tersedia. Silakan login kembali.');
+          }
+          requestParameters.adminToken = adminApiToken;
+        }
+
         let response;
         try {
           response = await fetch(GOOGLE_SHEET_API_URL, {
             method: 'POST',
             mode: 'cors',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-            body: new URLSearchParams(parameters)
+            body: new URLSearchParams(requestParameters)
           });
         } catch (error) {
           throw new Error('Endpoint Apps Script tidak dapat diakses. Deploy ulang Web App dengan akses “Anyone” dan pakai URL /exec deployment terbaru.');
@@ -1732,7 +1740,13 @@
           throw new Error('Endpoint tidak mengembalikan JSON. Pastikan deployment terbaru dipasang sebagai Web App dengan akses “Anyone”.');
         }
         const result = await response.json();
-        if (!result.ok) throw new Error(result.error || 'Gagal menyimpan ke Google Sheet.');
+        if (!result.ok) {
+          if (result.code === 'AUTH_REQUIRED') {
+            adminApiToken = '';
+            isAdminUnlocked = false;
+          }
+          throw new Error(result.error || 'Gagal menyimpan ke Google Sheet.');
+        }
         return result;
       }
 
@@ -3042,7 +3056,7 @@
       function showToast(msg) {
         const box = document.getElementById('toastBox');
         box.textContent = msg;
-        const isError = /gagal|salah|tidak dapat|tidak valid|melebihi|wajib|failed|ditolak/i.test(msg);
+        const isError = /gagal|salah|tidak dapat|tidak valid|tidak mengembalikan|meminta login|belum diatur|berakhir|tidak tersedia|melebihi|wajib|failed|ditolak/i.test(msg);
         box.style.opacity = '1';
         box.style.backdropFilter = 'none';
         box.classList.remove(
@@ -3577,6 +3591,10 @@
 
       // Admin Modal Controls
       function openAdminAccess() {
+        if (isAdminUnlocked && adminApiToken) {
+          openAdminPanel();
+          return;
+        }
         isAdminUnlocked = false;
         document.getElementById('adminPasswordInput').value = '';
         const modal = document.getElementById('adminLoginModal');
@@ -3609,9 +3627,20 @@
         isAdminUnlocked = false;
       }
 
-      function logoutAdmin() {
+      async function logoutAdmin() {
+        const token = adminApiToken;
+        adminApiToken = '';
         closeAdminPanel();
         activeAdminTab = 'brand';
+        if (token) {
+          try {
+            await postToGoogleSheet({ action: 'adminLogout', adminToken: token });
+          } catch (error) {
+            console.error('Gagal mengakhiri sesi admin di server:', error);
+            showToast('Anda logout di perangkat ini. Sesi server akan kedaluwarsa otomatis.');
+            return;
+          }
+        }
         showToast('Anda telah logout dari Panel Admin.');
       }
 
@@ -4318,16 +4347,27 @@
           : '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" /><circle cx="12" cy="12" r="2.75" />';
       });
 
-      document.getElementById('adminLoginForm').addEventListener('submit', e => {
+      document.getElementById('adminLoginForm').addEventListener('submit', async e => {
         e.preventDefault();
-        const pass = document.getElementById('adminPasswordInput').value;
-        if (pass === ADMIN_PASS) {
+        const passwordInput = document.getElementById('adminPasswordInput');
+        const submitButton = e.currentTarget.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        try {
+          const result = await postToGoogleSheet({
+            action: 'adminLogin',
+            password: passwordInput.value
+          });
+          if (!result.token) throw new Error('Server tidak mengembalikan sesi admin yang valid.');
+          adminApiToken = result.token;
           isAdminUnlocked = true;
           closeAdminLogin();
           openAdminPanel();
           showToast('Berhasil masuk ke Panel Admin.');
-        } else {
-          showToast('Password admin salah.');
+        } catch (error) {
+          showToast(error.message || 'Login admin gagal.');
+        } finally {
+          passwordInput.value = '';
+          submitButton.disabled = false;
         }
       });
 

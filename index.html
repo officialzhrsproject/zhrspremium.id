@@ -1147,11 +1147,11 @@
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label for="cfgOpeningTime" class="block text-[11px] text-slate-500 mb-1">Jam Buka</label>
-                  <input id="cfgOpeningTime" type="text" inputmode="numeric" placeholder="HH:mm" readonly class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <input id="cfgOpeningTime" type="text" inputmode="text" placeholder="HH:mm" required title="Gunakan format HH:mm, misalnya 08:00" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
                 </div>
                 <div>
                   <label for="cfgClosingTime" class="block text-[11px] text-slate-500 mb-1">Jam Tutup</label>
-                  <input id="cfgClosingTime" type="text" inputmode="numeric" placeholder="HH:mm" readonly class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
+                  <input id="cfgClosingTime" type="text" inputmode="text" placeholder="HH:mm" required title="Gunakan format HH:mm, misalnya 20:00" class="w-full px-3.5 py-2 rounded-xl bg-slatebg border border-line text-sm text-white" />
                 </div>
               </div>
               <p id="operatingHoursSyncStatus" role="status" aria-live="polite" class="mt-2 text-[11px] text-slate-500">Menunggu sinkronisasi Google Sheets...</p>
@@ -1631,6 +1631,7 @@
       let isStockSyncInProgress = false;
       let isStockWriteInProgress = false;
       let isOperatingHoursSyncInProgress = false;
+      let isOperatingHoursWriteInProgress = false;
       let isWhatsAppSyncInProgress = false;
       let isSocialSyncInProgress = false;
       let syncedSheetTotalRevenue = null;
@@ -1727,6 +1728,13 @@
             initialStock: product.initialStock,
             sold: product.sold
           })))
+        }));
+      }
+
+      async function syncOperatingHoursToGoogleSheet(hours) {
+        return Boolean(await postToGoogleSheet({
+          action: 'updateOperatingHours',
+          hours: JSON.stringify(hours)
         }));
       }
 
@@ -2000,8 +2008,20 @@
         status.classList.toggle('text-slate-500', !error);
       }
 
+      function hasUnsavedOperatingHoursEdits() {
+        if (!isAdminUnlocked) return false;
+        const openingInput = document.getElementById('cfgOpeningTime');
+        const closingInput = document.getElementById('cfgClosingTime');
+        return parseSheetTime(openingInput.value) !== state.brand.openingTime ||
+          parseSheetTime(closingInput.value) !== state.brand.closingTime;
+      }
+
       async function syncFromGoogleSheetOperatingHours() {
-        if (isOperatingHoursSyncInProgress) return;
+        if (isOperatingHoursSyncInProgress || isOperatingHoursWriteInProgress) return;
+        if (hasUnsavedOperatingHoursEdits()) {
+          updateOperatingHoursSyncStatus('Simpan perubahan jam operasional untuk melanjutkan sinkron otomatis.');
+          return;
+        }
         isOperatingHoursSyncInProgress = true;
         try {
           const timestamp = Date.now();
@@ -2029,6 +2049,10 @@
           }
           if (!hours) {
             throw lastError || new Error('Tidak dapat membaca jam operasional dari Google Sheets.');
+          }
+          if (hasUnsavedOperatingHoursEdits()) {
+            updateOperatingHoursSyncStatus('Simpan perubahan jam operasional untuk melanjutkan sinkron otomatis.');
+            return;
           }
 
           const previousOpeningTime = state.brand.openingTime;
@@ -4147,21 +4171,55 @@
         button.setAttribute('aria-expanded', String(!isProductSalesDashboardMinimized));
       });
 
-      document.getElementById('brandSettingsForm').addEventListener('submit', e => {
+      document.getElementById('brandSettingsForm').addEventListener('submit', async e => {
         e.preventDefault();
         if (!isAdminUnlocked) return;
+
+        const openingTime = parseSheetTime(document.getElementById('cfgOpeningTime').value);
+        const closingTime = parseSheetTime(document.getElementById('cfgClosingTime').value);
+        if (!openingTime || !closingTime) {
+          showToast('Jam buka dan jam tutup harus memakai format HH:mm yang valid.');
+          return;
+        }
+
+        const previousBrand = { ...state.brand };
         state.brand = {
+          ...state.brand,
           name: document.getElementById('cfgBrandName').value.trim() || 'Zhrs Apss',
           tagline: document.getElementById('cfgTagline').value.trim() || 'APK & Akun Digital Premium Terpercaya',
-          openingTime: document.getElementById('cfgOpeningTime').value,
-          closingTime: document.getElementById('cfgClosingTime').value,
+          openingTime,
+          closingTime,
           bannerBadge: document.getElementById('cfgBannerBadge').value.trim() || 'Proses Cepat & Bergaransi',
           bannerTitle: document.getElementById('cfgBannerTitle').value.trim() || 'Belanja APK & Akun Premium Lebih Praktis di Zhrs Apss',
           bannerDesc: document.getElementById('cfgBannerDesc').value.trim() || 'Pilih produk favorit, tentukan paket atau durasi, lalu order langsung ke salah satu dari 3 Admin WhatsApp aktif.'
         };
-        saveState();
+
+        if (!saveState()) {
+          state.brand = previousBrand;
+          syncAdminForms();
+          showToast('Pengaturan brand gagal disimpan di browser ini.');
+          return;
+        }
+
+        isOperatingHoursWriteInProgress = true;
+        try {
+          const savedToSheet = await syncOperatingHoursToGoogleSheet({ openingTime, closingTime });
+          if (!savedToSheet) throw new Error('URL endpoint Google Sheets belum diatur.');
+        } catch (error) {
+          state.brand = previousBrand;
+          const rollbackSaved = saveState();
+          syncAdminForms();
+          renderBrand();
+          const rollbackWarning = rollbackSaved ? '' : ' Pengaturan lokal gagal dipulihkan; muat ulang halaman sebelum melanjutkan.';
+          showToast(`Jam operasional gagal disimpan ke Excel: ${error.message}${rollbackWarning}`);
+          return;
+        } finally {
+          isOperatingHoursWriteInProgress = false;
+        }
+
+        await syncFromGoogleSheetOperatingHours();
         renderBrand();
-        showToast('Pengaturan brand & banner disimpan.');
+        showToast('Pengaturan brand, banner, dan jam operasional berhasil disimpan.');
       });
 
       document.getElementById('waChannelsForm').addEventListener('submit', async e => {

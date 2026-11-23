@@ -1263,7 +1263,7 @@
     <script>
       const STORAGE_KEY = 'zhrs_project_spa_clean_v1';
       const ADMIN_PASS = 'zhrs2026';
-      const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxuI7sowp7vVys--Mccd7HkJKa9NUMw5CiaBjXnSoVd_ZSDCjLE78Lr1lEQUMNfR2crAQ/exec';
+      const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyBd7eQjDnbr4SloZ-BDVidBtXxGpLDkeNmGX0ys0OpJgyP-tVAb2rgFUCfHh-ar1iszg/exec';
       const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/export?format=csv&gid=1';
       const GOOGLE_SHEET_GVIZ_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/gviz/tq?tqx=out:csv&gid=1';
       const GOOGLE_SHEET_DASHBOARD_CSV_URL = 'https://docs.google.com/spreadsheets/d/1cP0YsjixyD2RJr0psfwVdXA5Mj8fJwl_mbGxfqEhgNk/export?format=csv&gid=0';
@@ -1648,26 +1648,15 @@
           .some(input => input.value !== input.dataset.savedPrice);
       }
 
-      async function syncToGoogleSheet(product) {
+      async function postToGoogleSheet(parameters) {
         if (!GOOGLE_SHEET_API_URL) return false;
-
-        const prices = {};
-        product.packages.forEach(pkg => {
-          prices[pkg.label] = Math.max(0, Number(pkg.price || 0));
-        });
-        const body = new URLSearchParams({
-          action: 'update',
-          productId: product.id,
-          productName: product.name,
-          prices: JSON.stringify(prices)
-        });
 
         const response = await fetch(GOOGLE_SHEET_API_URL, {
           method: 'POST',
           mode: 'cors',
           credentials: 'include',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body
+          body: new URLSearchParams(parameters)
         });
         if (!response.ok) throw new Error('Sheet menolak pembaruan.');
         if (!(response.headers.get('content-type') || '').includes('application/json')) {
@@ -1675,7 +1664,51 @@
         }
         const result = await response.json();
         if (!result.ok) throw new Error(result.error || 'Gagal menyimpan ke Google Sheet.');
-        return true;
+        return result;
+      }
+
+      async function syncToGoogleSheet(product) {
+        const prices = {};
+        product.packages.forEach(pkg => {
+          prices[pkg.label] = Math.max(0, Number(pkg.price || 0));
+        });
+        return Boolean(await postToGoogleSheet({
+          action: 'update',
+          productId: product.id,
+          productName: product.name,
+          prices: JSON.stringify(prices)
+        }));
+      }
+
+      async function syncWhatsAppToGoogleSheet(channels) {
+        return Boolean(await postToGoogleSheet({
+          action: 'updateWhatsApp',
+          channels: JSON.stringify(channels.map(channel => ({
+            name: channel.name,
+            phone: channel.phone,
+            active: channel.active !== false
+          })))
+        }));
+      }
+
+      async function syncSocialsToGoogleSheet(socials, previousSocials) {
+        return Boolean(await postToGoogleSheet({
+          action: 'updateSocials',
+          socials: JSON.stringify(socials.map(social => {
+            const previous = previousSocials.find(item => item.id === social.id);
+            const handleChanged = previous && previous.handle !== social.handle;
+            const urlChanged = previous && previous.url !== social.url;
+            const account = handleChanged && !urlChanged
+              ? social.handle
+              : social.url || social.handle;
+            return {
+              id: social.id,
+              name: social.name,
+              account,
+              active: !social.hidden
+            };
+          }))
+        }));
       }
 
       function parseCsvRows(csvText) {
@@ -3657,6 +3690,21 @@
         showToast('Data stok dan penjualan berhasil disimpan.');
       });
 
+      function renderStatusToggle(button, isOn) {
+        button.classList.toggle('bg-emerald-100', isOn);
+        button.classList.toggle('text-emerald-800', isOn);
+        button.classList.toggle('border-emerald-300', isOn);
+        button.classList.toggle('bg-rose-100', !isOn);
+        button.classList.toggle('text-rose-800', !isOn);
+        button.classList.toggle('border-rose-300', !isOn);
+        button.setAttribute('aria-pressed', String(isOn));
+        button.title = isOn ? 'Klik untuk menonaktifkan' : 'Klik untuk mengaktifkan';
+        const dot = button.querySelector('.status-toggle-dot');
+        const label = button.querySelector('.status-toggle-label');
+        if (dot) dot.className = `status-toggle-dot w-2 h-2 rounded-full ${isOn ? 'bg-emerald-500' : 'bg-rose-500'}`;
+        if (label) label.textContent = isOn ? 'ON' : 'OFF';
+      }
+
       function renderAdminWaInputs() {
         const wrap = document.getElementById('adminWaInputs');
         wrap.innerHTML = state.waChannels.map((ch, idx) => `
@@ -3676,38 +3724,50 @@
             </div>
             <div class="border-t border-slate-200 pt-2.5 flex items-center justify-between gap-2">
               <span class="text-[11px] font-semibold text-slate-700">Status Kanal</span>
-              <button type="button" disabled title="Status ON/OFF diatur melalui Google Sheets." data-wa-idx="${idx}" data-active="${ch.active !== false}" aria-pressed="${ch.active !== false}" class="wa-toggle-btn inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold opacity-80 cursor-not-allowed ${
+              <button type="button" title="Klik untuk mengubah status" data-wa-idx="${idx}" aria-pressed="${ch.active !== false}" class="wa-toggle-btn inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold border ${
                 ch.active !== false
                   ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                   : 'bg-rose-100 text-rose-800 border border-rose-300'
               }">
-                <span class="w-2 h-2 rounded-full ${ch.active !== false ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
-                ${ch.active !== false ? 'ON' : 'OFF'}
+                <span class="status-toggle-dot w-2 h-2 rounded-full ${ch.active !== false ? 'bg-emerald-500' : 'bg-rose-500'}"></span>
+                <span class="status-toggle-label">${ch.active !== false ? 'ON' : 'OFF'}</span>
               </button>
               <input type="hidden" data-wa-idx="${idx}" data-field="active" value="${ch.active !== false ? 'true' : 'false'}" class="wa-field" />
             </div>
           </div>
         `).join('');
 
+        wrap.querySelectorAll('.wa-toggle-btn').forEach(button => {
+          button.addEventListener('click', () => {
+            const idx = button.dataset.waIdx;
+            const input = wrap.querySelector(`.wa-field[data-wa-idx="${idx}"][data-field="active"]`);
+            if (!input) return;
+            const isOn = input.value !== 'true';
+            input.value = String(isOn);
+            renderStatusToggle(button, isOn);
+          });
+        });
       }
 
       function renderAdminSocials() {
         const list = document.getElementById('adminSocialList');
         list.innerHTML = state.socials.map(soc => `
-          <div class="rounded-xl border border-line bg-slatebg p-3.5 space-y-3">
+          <div class="social-admin-card rounded-xl border border-line bg-slatebg p-3.5 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <div class="text-sm font-bold text-white">${escapeHtml(soc.name)}</div>
-                <div class="text-[11px] ${soc.hidden ? 'text-rose-300' : 'text-emerald-400'}">${soc.hidden ? 'OFF • Disembunyikan oleh Excel' : 'ON • Tampil sesuai Excel'}</div>
+                <div class="social-status-label text-[11px] ${soc.hidden ? 'text-rose-300' : 'text-emerald-400'}">${soc.hidden ? 'OFF • Tidak tampil di toko' : 'ON • Tampil di toko'}</div>
               </div>
-              <button type="button" disabled title="Status ON/OFF diatur melalui Google Sheets." class="px-3.5 py-1.5 rounded-lg text-xs font-semibold opacity-80 cursor-not-allowed ${
+              <button type="button" title="Klik untuk mengubah status" aria-pressed="${!soc.hidden}" class="social-status-toggle inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold border ${
                 soc.hidden
-                  ? 'bg-rose-100 text-rose-800 border border-rose-300'
-                  : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  ? 'bg-rose-100 text-rose-800 border-rose-300'
+                  : 'bg-emerald-100 text-emerald-800 border-emerald-300'
               }">
-                ${soc.hidden ? 'OFF' : 'ON'}
+                <span class="status-toggle-dot w-2 h-2 rounded-full ${soc.hidden ? 'bg-rose-500' : 'bg-emerald-500'}"></span>
+                <span class="status-toggle-label">${soc.hidden ? 'OFF' : 'ON'}</span>
               </button>
             </div>
+            <input type="hidden" data-soc-id="${escapeHtml(soc.id)}" value="${soc.hidden ? 'true' : 'false'}" class="social-status-field" />
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="block text-xs font-medium text-slate-300">
                 Nama akun / username
@@ -3725,7 +3785,23 @@
           </button>
         `;
 
-        list.querySelector('#saveSocialSettingsBtn').addEventListener('click', () => {
+        list.querySelectorAll('.social-status-toggle').forEach(button => {
+          button.addEventListener('click', () => {
+            const card = button.closest('.social-admin-card');
+            const hiddenInput = card && card.querySelector('.social-status-field');
+            const statusLabel = card && card.querySelector('.social-status-label');
+            if (!hiddenInput || !statusLabel) return;
+            const isHidden = hiddenInput.value !== 'true';
+            hiddenInput.value = String(isHidden);
+            renderStatusToggle(button, !isHidden);
+            statusLabel.textContent = isHidden ? 'OFF • Tidak tampil di toko' : 'ON • Tampil di toko';
+            statusLabel.classList.toggle('text-rose-300', isHidden);
+            statusLabel.classList.toggle('text-emerald-400', !isHidden);
+          });
+        });
+
+        list.querySelector('#saveSocialSettingsBtn').addEventListener('click', async () => {
+          if (!isAdminUnlocked) return;
           const updates = [...list.querySelectorAll('.social-field')].map(input => ({
             id: input.dataset.socId,
             field: input.dataset.socField,
@@ -3741,19 +3817,40 @@
           }
 
           const previousSocials = state.socials.map(social => ({ ...social }));
+          const nextSocials = previousSocials.map(social => ({ ...social }));
           updates.forEach(update => {
-            const target = state.socials.find(social => social.id === update.id);
+            const target = nextSocials.find(social => social.id === update.id);
             if (target) target[update.field] = update.value;
           });
+          list.querySelectorAll('.social-status-field').forEach(input => {
+            const target = nextSocials.find(social => social.id === input.dataset.socId);
+            if (target) target.hidden = input.value === 'true';
+          });
+
+          state.socials = nextSocials;
           if (!saveState()) {
             state.socials = previousSocials;
             showToast('Perubahan media sosial gagal disimpan di browser ini.');
             renderAdminSocials();
             return;
           }
+
+          try {
+            const synced = await syncSocialsToGoogleSheet(state.socials, previousSocials);
+            if (!synced) throw new Error('URL endpoint Google Sheets belum diatur.');
+            await syncFromGoogleSheetSocials();
+          } catch (error) {
+            state.socials = previousSocials;
+            saveState();
+            renderSocials();
+            renderAdminSocials();
+            showToast(`Perubahan media sosial gagal disimpan ke Excel: ${error.message}`);
+            return;
+          }
+
           renderSocials();
           renderAdminSocials();
-          showToast('Nama akun dan tautan media sosial berhasil disimpan.');
+          showToast('Status dan pengaturan media sosial berhasil disimpan ke Excel.');
         });
       }
 
@@ -3973,28 +4070,58 @@
         showToast('Pengaturan brand & banner disimpan.');
       });
 
-      document.getElementById('waChannelsForm').addEventListener('submit', e => {
+      document.getElementById('waChannelsForm').addEventListener('submit', async e => {
         e.preventDefault();
         if (!isAdminUnlocked) return;
         const previousChannels = state.waChannels.map(channel => ({ ...channel }));
+        const nextChannels = previousChannels.map(channel => ({ ...channel }));
         document.querySelectorAll('.wa-field').forEach(inp => {
           const idx = Number(inp.dataset.waIdx);
           const field = inp.dataset.field;
-          if (state.waChannels[idx]) {
-            state.waChannels[idx][field] = field === 'active'
+          if (nextChannels[idx]) {
+            nextChannels[idx][field] = field === 'active'
               ? inp.value === 'true'
-              : inp.value.trim();
+              : field === 'phone'
+                ? inp.value.replace(/\D/g, '')
+                : inp.value.trim();
           }
         });
+
+        const invalidChannel = nextChannels.find(channel =>
+          !channel.name.trim() ||
+          (channel.phone && (channel.phone.length < 8 || channel.phone.length > 15)) ||
+          (channel.active && !channel.phone)
+        );
+        if (invalidChannel) {
+          showToast('Isi nama admin dan nomor WhatsApp yang valid (8-15 digit).');
+          return;
+        }
+
+        state.waChannels = nextChannels;
         if (!saveState()) {
           state.waChannels = previousChannels;
           renderAdminWaInputs();
           showToast('Perubahan kanal WhatsApp gagal disimpan di browser ini.');
           return;
         }
+
+        try {
+          const synced = await syncWhatsAppToGoogleSheet(state.waChannels);
+          if (!synced) throw new Error('URL endpoint Google Sheets belum diatur.');
+        } catch (error) {
+          state.waChannels = previousChannels;
+          saveState();
+          renderAdminWaInputs();
+          renderWaChannelButtons();
+          renderSocials();
+          showToast(`Perubahan WhatsApp gagal disimpan ke Excel: ${error.message}`);
+          return;
+        }
+
         renderWaChannelButtons();
         renderSocials();
-        showToast('3 kanal WhatsApp berhasil diperbarui.');
+        renderAdminWaInputs();
+        showToast('Nomor dan status 3 kanal WhatsApp berhasil disimpan ke Excel.');
       });
 
       if (window.matchMedia('(max-width: 767px)').matches) {

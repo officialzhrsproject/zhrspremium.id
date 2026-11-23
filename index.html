@@ -3056,7 +3056,7 @@
       function showToast(msg) {
         const box = document.getElementById('toastBox');
         box.textContent = msg;
-        const isError = /gagal|salah|tidak dapat|tidak valid|tidak mengembalikan|meminta login|belum diatur|berakhir|tidak tersedia|melebihi|wajib|failed|ditolak/i.test(msg);
+        const isError = /gagal|salah|tidak dapat|tidak valid|tidak didukung|tidak mengembalikan|meminta login|belum diatur|berakhir|tidak tersedia|melebihi|wajib|failed|ditolak/i.test(msg);
         box.style.opacity = '1';
         box.style.backdropFilter = 'none';
         box.classList.remove(

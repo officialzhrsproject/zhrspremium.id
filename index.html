@@ -1479,8 +1479,8 @@
           'Instagram Story Polling Vote - 100'
         ],
         tiktok: [
-          'TikTok Followers - 100 Foll Luar',
-          'TikTok Followers - 100 Foll Indo',
+          'TikTok Followers - 100 Followers Luar',
+          'TikTok Followers - 100 Followers Indo',
           'TikTok Followers - 100 Buzzer',
           'TikTok Likes - 100 Like Luar',
           'TikTok Likes - 100 Like Indo',
@@ -1491,8 +1491,8 @@
           'TikTok Favorites / Save - 100 Save'
         ],
         threads: [
-          'Threads Followers - 100 Foll Luar',
-          'Threads Followers - 100 Foll Indo',
+          'Threads Followers - 100 Followers Luar',
+          'Threads Followers - 100 Followers Indo',
           'Threads Likes - 100 Like Luar',
           'Threads Likes - 100 Like Indo',
           'Threads Repost - 10 Repost',
@@ -1501,8 +1501,8 @@
           'Threads Custom Comments - 10 Luar'
         ],
         facebook: [
-          'Facebook Followers - 100 Foll Luar',
-          'Facebook Followers - 100 Foll Indo',
+          'Facebook Followers - 100 Followers Luar',
+          'Facebook Followers - 100 Followers Indo',
           'Facebook Post Likes - 100 Like Luar',
           'Facebook Post Likes - 100 Like Indo',
           'Facebook Fanpage Likes - 100 Like',
@@ -2711,15 +2711,36 @@
 
       function canonicalSocialMediaPackageLabel(value) {
         const label = normalizeProductName(value);
-        const instagramAliases = {
+        const socialMediaAliases = {
           'instagram followers 100 foll luar': 'Instagram Followers - 100 Followers Luar',
-          'instagram followers 100 foll indo': 'Instagram Followers - 100 Followers Indo'
+          'instagram followers 100 foll indo': 'Instagram Followers - 100 Followers Indo',
+          'tiktok followers 100 foll luar': 'TikTok Followers - 100 Followers Luar',
+          'tiktok followers 100 foll indo': 'TikTok Followers - 100 Followers Indo',
+          'threads followers 100 foll luar': 'Threads Followers - 100 Followers Luar',
+          'threads followers 100 foll indo': 'Threads Followers - 100 Followers Indo',
+          'facebook followers 100 foll luar': 'Facebook Followers - 100 Followers Luar',
+          'facebook followers 100 foll indo': 'Facebook Followers - 100 Followers Indo'
         };
         for (const labels of Object.values(SOCIAL_MEDIA_PRICE_PACKAGE_LABELS)) {
           const matchingLabel = labels.find(item => normalizeProductName(item) === label);
           if (matchingLabel) return matchingLabel;
         }
-        return instagramAliases[label] || '';
+        return socialMediaAliases[label] || '';
+      }
+
+      function hasSocialMediaFollowerPrices(rows) {
+        const requiredPackages = [
+          ['TikTok', 'TikTok Followers - 100 Followers Luar'],
+          ['TikTok', 'TikTok Followers - 100 Followers Indo'],
+          ['Threads', 'Threads Followers - 100 Followers Luar'],
+          ['Threads', 'Threads Followers - 100 Followers Indo'],
+          ['Facebook', 'Facebook Followers - 100 Followers Luar'],
+          ['Facebook', 'Facebook Followers - 100 Followers Indo']
+        ];
+        return requiredPackages.every(([name, label]) => rows.some(row =>
+          normalizeProductName(row.name) === normalizeProductName(name) &&
+          canonicalDuration(row.duration) === label
+        ));
       }
 
       function readDirectGoogleSheet(csvText) {
@@ -2837,6 +2858,10 @@
             } catch (error) {
               lastError = error;
             }
+          }
+
+          if (sheetRows.length && !hasSocialMediaFollowerPrices(sheetRows)) {
+            sheetRows = [];
           }
 
           if (!sheetRows.length) {

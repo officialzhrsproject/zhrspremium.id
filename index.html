@@ -1517,24 +1517,28 @@
           id: 'p_sosmed_followers',
           name: 'Instagram',
           platformKey: 'instagram',
+          url: 'https://instagram.com/zhrsproject.id',
           desc: 'Tersedia untuk Followers, Like, View, Komen Custom, Reel Instagram, dan Story Instagram.'
         },
         {
           id: 'p_sosmed_tiktok',
           name: 'TikTok',
           platformKey: 'tiktok',
+          url: 'https://www.tiktok.com/@zhrs.project',
           desc: 'Tersedia untuk Followers, Like, View, Komen Custom, Share, dan Save TikTok.'
         },
         {
           id: 'p_sosmed_threads',
           name: 'Threads',
           platformKey: 'threads',
+          url: 'https://www.threads.net/',
           desc: 'Tersedia untuk Followers, Like, Repost, dan Komen Custom Threads.'
         },
         {
           id: 'p_sosmed_facebook',
           name: 'Facebook',
           platformKey: 'facebook',
+          url: 'https://www.facebook.com/',
           desc: 'Tersedia untuk Followers, Like Postingan, Like Fanpage, View, Komen Custom, dan Share Facebook.'
         }
       ];
@@ -3036,6 +3040,15 @@
         if (prod?.id === 'p_sosmed_followers' || name === 'instagram') {
           return `<span class="product-logo logo-custom" aria-label="Logo Instagram"><img src="${EMBEDDED_ASSETS['social-instagram.svg']}" alt="Instagram" /></span>`;
         }
+        if (prod?.id === 'p_sosmed_tiktok' || name === 'tiktok') {
+          return `<span class="product-logo logo-custom" aria-label="Logo TikTok"><img src="${EMBEDDED_ASSETS['social-tiktok.svg']}" alt="TikTok" /></span>`;
+        }
+        if (prod?.id === 'p_sosmed_threads' || name === 'threads') {
+          return `<span class="product-logo logo-custom" aria-label="Logo Threads"><img src="https://cdn.simpleicons.org/threads/000000" alt="Threads" /></span>`;
+        }
+        if (prod?.id === 'p_sosmed_facebook' || name === 'facebook') {
+          return `<span class="product-logo logo-custom" aria-label="Logo Facebook"><img src="https://cdn.simpleicons.org/facebook/0866FF" alt="Facebook" /></span>`;
+        }
         if (prod?.id === 'p_new_loklok' || name.includes('loklok')) {
           return `<span class="product-logo logo-loklok" aria-label="Logo Loklok"><img src="${PRODUCT_LOGO_ASSETS.loklok}" alt="Loklok" /></span>`;
         }
@@ -3354,6 +3367,7 @@
             : minPrice === maxPrice
               ? formatRupiah(minPrice)
               : `${formatRupiah(minPrice)} – ${formatRupiah(maxPrice)}`;
+          const socialProductUrl = SOCIAL_MEDIA_PRODUCT_BY_ID.get(prod.id)?.url;
 
           return `
             <article class="rounded-2xl border border-line bg-cardbg hover:bg-cardhover p-5 flex flex-col justify-between gap-4 transition">
@@ -3365,7 +3379,9 @@
                   ${isSocialMediaProduct ? '' : `<span class="text-xs font-bold text-emerald-400">${priceLabel}</span>`}
                 </div>
                 <div class="flex items-center gap-3">
-                  ${getProductLogo(prod)}
+                  ${socialProductUrl
+                    ? `<a href="${escapeHtml(socialProductUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Buka ${escapeHtml(prod.name)}" title="Buka ${escapeHtml(prod.name)}">${getProductLogo(prod)}</a>`
+                    : getProductLogo(prod)}
                   <h3 class="text-base font-bold text-white">${escapeHtml(prod.name)}</h3>
                 </div>
                 ${isSocialMediaProduct

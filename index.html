@@ -1222,11 +1222,11 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
               <h3 class="text-sm font-extrabold text-slate-950">Hasil Penjualan per Produk</h3>
-              <button id="toggleProductSalesDashboardBtn" type="button" aria-controls="productSalesDashboard" aria-expanded="false" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
-                Tampilkan
+              <button id="toggleProductSalesDashboardBtn" type="button" aria-controls="productSalesDashboard" aria-expanded="true" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 text-slate-700 hover:bg-slate-100 transition">
+                Minimalkan
               </button>
             </div>
-            <div id="productSalesDashboard" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            <div id="productSalesDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
           </div>
           <div class="space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -1462,8 +1462,8 @@
 
       const SOCIAL_MEDIA_CATEGORY = 'Kebutuhan Sosmed dan Jasa';
       const INSTAGRAM_PRICE_PACKAGE_LABELS = [
-        'Instagram Followers - 100 Foll Luar',
-        'Instagram Followers - 100 Foll Indo',
+        'Instagram Followers - 100 Followers Luar',
+        'Instagram Followers - 100 Followers Indo',
         'Instagram Followers - 100 Buzzer',
         'Instagram Likes - 100 Like Luar',
         'Instagram Likes - 100 Like Indo',
@@ -1635,7 +1635,9 @@
                   packages: INSTAGRAM_PRICE_PACKAGE_LABELS.map(label => ({
                     label,
                     price: Math.max(0, Number(
-                      (product.packages || []).find(pkg => pkg.label === label)?.price || 0
+                      (product.packages || []).find(pkg =>
+                        canonicalInstagramPackageLabel(pkg.label) === label
+                      )?.price || 0
                     ))
                   }))
                 }
@@ -1676,7 +1678,7 @@
       let activeCategory = 'Semua';
       let activeTag = '#Semua';
       let isTestimonialHistoryOpen = false;
-      let isProductSalesDashboardMinimized = true;
+      let isProductSalesDashboardMinimized = false;
       let isStockSyncInProgress = false;
       let isStockWriteInProgress = false;
       let isOperatingHoursSyncInProgress = false;
@@ -2635,9 +2637,22 @@
 
       function canonicalDuration(value) {
         const duration = String(value || '').trim();
+        const instagramLabel = canonicalInstagramPackageLabel(duration);
+        if (instagramLabel) return instagramLabel;
         if (/^1\s*bulan\s*\(\s*sharing\s*\)$/i.test(duration)) return '1 Bulan (Sharing)';
         if (/^1\s*bulan\s*\(\s*private\s*\)$/i.test(duration)) return '1 Bulan (Private)';
         return getStandardPackageLabel(duration) || duration;
+      }
+
+      function canonicalInstagramPackageLabel(value) {
+        const label = String(value || '').trim();
+        if (label === 'Instagram Followers - 100 Foll Luar') {
+          return 'Instagram Followers - 100 Followers Luar';
+        }
+        if (label === 'Instagram Followers - 100 Foll Indo') {
+          return 'Instagram Followers - 100 Followers Indo';
+        }
+        return INSTAGRAM_PRICE_PACKAGE_LABELS.includes(label) ? label : '';
       }
 
       function readDirectGoogleSheet(csvText) {
@@ -3056,7 +3071,7 @@
       function showToast(msg) {
         const box = document.getElementById('toastBox');
         box.textContent = msg;
-        const isError = /gagal|salah|tidak dapat|tidak valid|tidak didukung|tidak mengembalikan|meminta login|belum diatur|berakhir|tidak tersedia|melebihi|wajib|failed|ditolak/i.test(msg);
+        const isError = /gagal|salah|tidak dapat|tidak valid|melebihi|wajib|failed|ditolak/i.test(msg);
         box.style.opacity = '1';
         box.style.backdropFilter = 'none';
         box.classList.remove(

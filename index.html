@@ -1461,36 +1461,96 @@
       DEFAULT_STATE.products.push(...NEW_CATALOG_PRODUCTS);
 
       const SOCIAL_MEDIA_CATEGORY = 'Kebutuhan Sosmed dan Jasa';
-      const INSTAGRAM_PRICE_PACKAGE_LABELS = [
-        'Instagram Followers - 100 Followers Luar',
-        'Instagram Followers - 100 Followers Indo',
-        'Instagram Followers - 100 Buzzer',
-        'Instagram Likes - 100 Like Luar',
-        'Instagram Likes - 100 Like Indo',
-        'Instagram Views - 100 View',
-        'Instagram Custom Comments - 10 Indo',
-        'Instagram Custom Comments - 10 Luar',
-        'Instagram Reels Views - 10 View',
-        'Instagram Reels Save - 100 Save',
-        'Instagram Reels Repost - 10 Repost',
-        'Instagram Story Views - 100 View',
-        'Instagram Story Likes - 100 Like',
-        'Instagram Story Polling Vote - 100'
-      ];
-      const REMOVED_SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_likes', 'p_sosmed_shares']);
-      const SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_followers']);
-      const NEW_SOCIAL_MEDIA_PRODUCTS = [
+      const SOCIAL_MEDIA_PRICE_PACKAGE_LABELS = {
+        instagram: [
+          'Instagram Followers - 100 Followers Luar',
+          'Instagram Followers - 100 Followers Indo',
+          'Instagram Followers - 100 Buzzer',
+          'Instagram Likes - 100 Like Luar',
+          'Instagram Likes - 100 Like Indo',
+          'Instagram Views - 100 View',
+          'Instagram Custom Comments - 10 Indo',
+          'Instagram Custom Comments - 10 Luar',
+          'Instagram Reels Views - 10 View',
+          'Instagram Reels Save - 100 Save',
+          'Instagram Reels Repost - 10 Repost',
+          'Instagram Story Views - 100 View',
+          'Instagram Story Likes - 100 Like',
+          'Instagram Story Polling Vote - 100'
+        ],
+        tiktok: [
+          'TikTok Followers - 100 Foll Luar',
+          'TikTok Followers - 100 Foll Indo',
+          'TikTok Followers - 100 Buzzer',
+          'TikTok Likes - 100 Like Luar',
+          'TikTok Likes - 100 Like Indo',
+          'TikTok Views - 1000 View',
+          'TikTok Custom Comments - 10 Indo',
+          'TikTok Custom Comments - 10 Luar',
+          'TikTok Shares - 100 Share',
+          'TikTok Favorites / Save - 100 Save'
+        ],
+        threads: [
+          'Threads Followers - 100 Foll Luar',
+          'Threads Followers - 100 Foll Indo',
+          'Threads Likes - 100 Like Luar',
+          'Threads Likes - 100 Like Indo',
+          'Threads Repost - 10 Repost',
+          'Threads Repost - 100 Repost',
+          'Threads Custom Comments - 10 Indo',
+          'Threads Custom Comments - 10 Luar'
+        ],
+        facebook: [
+          'Facebook Followers - 100 Foll Luar',
+          'Facebook Followers - 100 Foll Indo',
+          'Facebook Post Likes - 100 Like Luar',
+          'Facebook Post Likes - 100 Like Indo',
+          'Facebook Fanpage Likes - 100 Like',
+          'Facebook Video / Reels Views - 100 View',
+          'Facebook Custom Comments - 10 Indo',
+          'Facebook Custom Comments - 10 Luar',
+          'Facebook Post Share - 100 Share'
+        ]
+      };
+      const SOCIAL_MEDIA_PRODUCT_CONFIGS = [
         {
           id: 'p_sosmed_followers',
           name: 'Instagram',
-          desc: 'Pilih layanan Instagram dan paket yang dibutuhkan. Cantumkan tautan akun atau detail pesanan pada catatan.'
+          platformKey: 'instagram',
+          desc: 'Tersedia untuk Followers, Like, View, Komen Custom, Reel Instagram, dan Story Instagram.'
+        },
+        {
+          id: 'p_sosmed_tiktok',
+          name: 'TikTok',
+          platformKey: 'tiktok',
+          desc: 'Tersedia untuk Followers, Like, View, Komen Custom, Share, dan Save TikTok.'
+        },
+        {
+          id: 'p_sosmed_threads',
+          name: 'Threads',
+          platformKey: 'threads',
+          desc: 'Tersedia untuk Followers, Like, Repost, dan Komen Custom Threads.'
+        },
+        {
+          id: 'p_sosmed_facebook',
+          name: 'Facebook',
+          platformKey: 'facebook',
+          desc: 'Tersedia untuk Followers, Like Postingan, Like Fanpage, View, Komen Custom, dan Share Facebook.'
         }
-      ].map(product => ({
-        ...product,
+      ];
+      const REMOVED_SOCIAL_MEDIA_PRODUCT_IDS = new Set(['p_sosmed_likes', 'p_sosmed_shares']);
+      const SOCIAL_MEDIA_PRODUCT_IDS = new Set(SOCIAL_MEDIA_PRODUCT_CONFIGS.map(product => product.id));
+      const SOCIAL_MEDIA_PRODUCT_BY_ID = new Map(
+        SOCIAL_MEDIA_PRODUCT_CONFIGS.map(product => [product.id, product])
+      );
+      const NEW_SOCIAL_MEDIA_PRODUCTS = SOCIAL_MEDIA_PRODUCT_CONFIGS.map(product => ({
+        id: product.id,
+        name: product.name,
+        desc: product.desc,
         category: SOCIAL_MEDIA_CATEGORY,
         stock: 0,
         sold: 0,
-        packages: INSTAGRAM_PRICE_PACKAGE_LABELS.map(label => ({ label, price: 0 }))
+        packages: SOCIAL_MEDIA_PRICE_PACKAGE_LABELS[product.platformKey].map(label => ({ label, price: 0 }))
       }));
 
       DEFAULT_STATE.products.push(...NEW_SOCIAL_MEDIA_PRODUCTS);
@@ -1612,8 +1672,8 @@
           const savedProducts = Array.isArray(parsed.products) && parsed.products.length
             ? parsed.products
                 .filter(product => !REMOVED_SOCIAL_MEDIA_PRODUCT_IDS.has(product.id))
-                .map(product => product.id === 'p_sosmed_followers'
-                  ? { ...product, name: 'Instagram' }
+                .map(product => SOCIAL_MEDIA_PRODUCT_BY_ID.has(product.id)
+                  ? { ...product, name: SOCIAL_MEDIA_PRODUCT_BY_ID.get(product.id).name }
                   : product)
             : cloneDefault().products;
           const savedProductIds = new Set(savedProducts.map(product => product.id));
@@ -1627,16 +1687,17 @@
               }))
           ].map(product => {
             const defaultProduct = DEFAULT_STATE.products.find(item => item.id === product.id);
-            const migratedProduct = product.id === 'p_sosmed_followers'
+            const socialMediaConfig = SOCIAL_MEDIA_PRODUCT_BY_ID.get(product.id);
+            const migratedProduct = socialMediaConfig
               ? {
                   ...product,
-                  name: 'Instagram',
-                  desc: defaultProduct?.desc || product.desc,
-                  packages: INSTAGRAM_PRICE_PACKAGE_LABELS.map(label => ({
+                  name: socialMediaConfig.name,
+                  desc: socialMediaConfig.desc,
+                  packages: SOCIAL_MEDIA_PRICE_PACKAGE_LABELS[socialMediaConfig.platformKey].map(label => ({
                     label,
                     price: Math.max(0, Number(
                       (product.packages || []).find(pkg =>
-                        canonicalInstagramPackageLabel(pkg.label) === label
+                        canonicalSocialMediaPackageLabel(pkg.label) === label
                       )?.price || 0
                     ))
                   }))
@@ -2637,22 +2698,24 @@
 
       function canonicalDuration(value) {
         const duration = String(value || '').trim();
-        const instagramLabel = canonicalInstagramPackageLabel(duration);
-        if (instagramLabel) return instagramLabel;
+        const socialMediaLabel = canonicalSocialMediaPackageLabel(duration);
+        if (socialMediaLabel) return socialMediaLabel;
         if (/^1\s*bulan\s*\(\s*sharing\s*\)$/i.test(duration)) return '1 Bulan (Sharing)';
         if (/^1\s*bulan\s*\(\s*private\s*\)$/i.test(duration)) return '1 Bulan (Private)';
         return getStandardPackageLabel(duration) || duration;
       }
 
-      function canonicalInstagramPackageLabel(value) {
-        const label = String(value || '').trim();
-        if (label === 'Instagram Followers - 100 Foll Luar') {
-          return 'Instagram Followers - 100 Followers Luar';
+      function canonicalSocialMediaPackageLabel(value) {
+        const label = normalizeProductName(value);
+        const instagramAliases = {
+          'instagram followers 100 foll luar': 'Instagram Followers - 100 Followers Luar',
+          'instagram followers 100 foll indo': 'Instagram Followers - 100 Followers Indo'
+        };
+        for (const labels of Object.values(SOCIAL_MEDIA_PRICE_PACKAGE_LABELS)) {
+          const matchingLabel = labels.find(item => normalizeProductName(item) === label);
+          if (matchingLabel) return matchingLabel;
         }
-        if (label === 'Instagram Followers - 100 Foll Indo') {
-          return 'Instagram Followers - 100 Followers Indo';
-        }
-        return INSTAGRAM_PRICE_PACKAGE_LABELS.includes(label) ? label : '';
+        return instagramAliases[label] || '';
       }
 
       function readDirectGoogleSheet(csvText) {
@@ -2701,36 +2764,39 @@
           }
         }
 
-        let instagramHeaderRow = -1;
-        let instagramPlatformIndex = -1;
-        let instagramPackageIndex = -1;
-        let instagramPriceIndex = -1;
+        let socialHeaderRow = -1;
+        let socialPlatformIndex = -1;
+        let socialPackageIndex = -1;
+        let socialPriceIndex = -1;
         for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
           const headers = rows[rowIndex];
           const platformIndex = findSheetColumn(headers, ['Platform']);
           const categoryIndex = findSheetColumn(headers, ['Kategori Layanan']);
           const packageIndex = findSheetColumn(headers, ['Nama Paket Lengkap']);
           const serviceCodeIndex = findSheetColumn(headers, ['Kode Layanan']);
-          const socialPriceIndex = findSheetColumn(headers, ['Harga Jual']);
-          if ([platformIndex, categoryIndex, packageIndex, serviceCodeIndex, socialPriceIndex].every(index => index >= 0)) {
-            instagramHeaderRow = rowIndex;
-            instagramPlatformIndex = platformIndex;
-            instagramPackageIndex = packageIndex;
-            instagramPriceIndex = socialPriceIndex;
+          const rowPriceIndex = findSheetColumn(headers, ['Harga Jual']);
+          if ([platformIndex, categoryIndex, packageIndex, serviceCodeIndex, rowPriceIndex].every(index => index >= 0)) {
+            socialHeaderRow = rowIndex;
+            socialPlatformIndex = platformIndex;
+            socialPackageIndex = packageIndex;
+            socialPriceIndex = rowPriceIndex;
             break;
           }
         }
 
-        if (instagramHeaderRow >= 0) {
-          for (let rowIndex = instagramHeaderRow + 1; rowIndex < rows.length; rowIndex++) {
+        if (socialHeaderRow >= 0) {
+          for (let rowIndex = socialHeaderRow + 1; rowIndex < rows.length; rowIndex++) {
             const row = rows[rowIndex];
-            const platform = String(row[instagramPlatformIndex] || '').trim();
-            const packageLabel = String(row[instagramPackageIndex] || '').trim();
-            if (normalizeProductName(platform) !== normalizeProductName('Instagram') || !packageLabel) continue;
+            const platform = String(row[socialPlatformIndex] || '').trim();
+            const config = SOCIAL_MEDIA_PRODUCT_CONFIGS.find(item =>
+              normalizeProductName(item.name) === normalizeProductName(platform)
+            );
+            const packageLabel = canonicalSocialMediaPackageLabel(row[socialPackageIndex]);
+            if (!config || !packageLabel) continue;
             products.push({
-              name: 'Instagram',
+              name: config.name,
               duration: packageLabel,
-              price: parseIndonesianPrice(row[instagramPriceIndex])
+              price: parseIndonesianPrice(row[socialPriceIndex])
             });
           }
         }
@@ -2815,8 +2881,9 @@
               normalizeProductName(row.name) === normalizeProductName(product.name)
             );
             const priceByDuration = new Map();
-            const allowedLabels = SOCIAL_MEDIA_PRODUCT_IDS.has(product.id)
-              ? INSTAGRAM_PRICE_PACKAGE_LABELS
+            const socialMediaConfig = SOCIAL_MEDIA_PRODUCT_BY_ID.get(product.id);
+            const allowedLabels = socialMediaConfig
+              ? SOCIAL_MEDIA_PRICE_PACKAGE_LABELS[socialMediaConfig.platformKey]
               : normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
                 ? NETFLIX_PACKAGE_LABELS
                 : STANDARD_PACKAGE_LABELS;
@@ -3303,13 +3370,11 @@
                 </div>
                 ${isSocialMediaProduct
                   ? `<div class="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-3">
-                      <p class="text-[11px] leading-relaxed text-emerald-800">
-                        Tersedia untuk Followers, Like, View, Komen Custom, Reel Instagram, dan Story Instagram.
-                      </p>
-                      <details class="mt-2 instagram-price-list">
+                      <p class="text-[11px] leading-relaxed text-emerald-800">${escapeHtml(prod.desc || '')}</p>
+                      <details class="mt-2 social-media-price-list">
                       <summary class="cursor-pointer list-none flex items-center justify-between gap-3 text-sm font-bold text-emerald-700">
-                        <span>Daftar Layanan Instagram</span>
-                        <span class="instagram-price-toggle text-[10px] font-semibold px-2 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-800">Tampilkan</span>
+                        <span>Daftar Layanan ${escapeHtml(prod.name)}</span>
+                        <span class="social-media-price-toggle text-[10px] font-semibold px-2 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-800">Tampilkan</span>
                       </summary>
                       <div class="mt-2 space-y-1.5">
                         ${socialServices.map(service => `
@@ -3350,8 +3415,8 @@
           `;
         }).join('');
 
-        grid.querySelectorAll('.instagram-price-list').forEach(details => {
-          const toggle = details.querySelector('.instagram-price-toggle');
+        grid.querySelectorAll('.social-media-price-list').forEach(details => {
+          const toggle = details.querySelector('.social-media-price-toggle');
           const updateToggleLabel = () => {
             if (toggle) toggle.textContent = details.open ? 'Minimalkan' : 'Tampilkan';
           };

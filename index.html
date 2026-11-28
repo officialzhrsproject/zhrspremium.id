@@ -1419,48 +1419,208 @@
         ]
       };
 
-      const NEW_CATALOG_PRODUCTS = [
-        ['disney_plus', 'Disney+', 'Streaming'],
-        ['dramabox', 'DramaBox', 'Streaming'],
-        ['hbo_max', 'HBO Max', 'Streaming'],
-        ['iqiyi', 'iQIYI', 'Streaming'],
-        ['loklok', 'Loklok', 'Streaming'],
-        ['meitu', 'Meitu', 'Editing'],
-        ['picsart', 'Picsart', 'Editing'],
-        ['prime_video', 'Prime Video', 'Streaming'],
-        ['scribd', 'Scribd', 'Desain & Produktivitas'],
-        ['vidio', 'Vidio', 'Streaming'],
-        ['vision_plus', 'Vision+', 'Streaming'],
-        ['viu', 'Viu', 'Streaming'],
-        ['vsco', 'VSCO', 'Editing'],
-        ['wetv', 'WeTV', 'Streaming'],
-        ['wink', 'Wink', 'Editing'],
-        ['youku', 'Youku', 'Streaming'],
-        ['zoom', 'Zoom', 'Desain & Produktivitas'],
-        ['crunchyroll', 'Crunchyroll', 'Streaming'],
-        ['gagaoolala', 'GagaOOLala', 'Streaming'],
-        ['duolingo', 'Duolingo', 'Desain & Produktivitas'],
-        ['ibispaint', 'IbisPaint', 'Editing'],
-        ['melolo', 'Melolo', 'Streaming'],
-        ['grammarly', 'Grammarly', 'Desain & Produktivitas'],
-        ['shortmax', 'ShortMax', 'Streaming']
-      ].map(([id, name, category]) => ({
-        id: `p_new_${id}`,
-        name,
-        category,
-        desc: category === 'Streaming'
-          ? 'Layanan hiburan streaming.'
-          : category === 'Editing'
-            ? 'Aplikasi kreatif dan editing.'
-            : 'Layanan digital untuk produktivitas.',
-        stock: 0,
-        sold: 0,
-        packages: [
-          { label: '1 Hari', price: 0 },
-          { label: '7 Hari', price: 0 },
-          { label: '1 Bulan', price: 0 }
-        ]
-      }));
+      const CATALOG_PRODUCT_CONFIGS = [
+        {
+          id: 'p_nf',
+          name: 'Netflix Premium UHD',
+          category: 'Streaming',
+          packages: [
+            'SHARING 2u1p - 3 Hari', 'SHARING 2u1p - 7 Hari', 'SHARING 2u1p - 1 Bulan',
+            'SHARING 1u1p - 3 Hari', 'SHARING 1u1p - 7 Hari', 'SHARING 1u1p - 1 Bulan',
+            'SEMI PRIVATE - 3 Hari', 'SEMI PRIVATE - 7 Hari', 'SEMI PRIVATE - 1 Bulan',
+            'ANTI LIMIT - 1 Bulan', 'FULL PRIVATE - 1 Bulan'
+          ]
+        },
+        {
+          id: 'p_canva',
+          name: 'Canva',
+          category: 'Desain & Produktivitas',
+          packages: ['MEMBER - 1 Bulan', 'DESAIN - 1 Bulan', 'OWN - 1 Bulan', 'LIFE TIME - 1 Bulan']
+        },
+        {
+          id: 'p_capcut',
+          name: 'CapCut',
+          category: 'Editing',
+          packages: ['SHARING - 7 Hari', 'SHARING - 1 Bulan', 'PRIVATE - 7 Hari', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_spotify',
+          name: 'Spotify',
+          category: 'Musik',
+          packages: [
+            'INPLAND - 1 Bulan Nogar', 'INPLAND - 1 Bulan Garansi', 'INPLAND - 3 Bulan Nogar',
+            'FAMPLAND - 1 Bulan', 'FAMPLAND - 3 Bulan'
+          ]
+        },
+        {
+          id: 'p_yt',
+          name: 'YouTube',
+          category: 'Streaming',
+          packages: [
+            'FAMPLAND - 1 Bulan', 'FAMPLAND - 2 Bulan', 'FAMPLAND - 3 Bulan',
+            'INDPLAND - 1 Bulan', 'INDPLAND - 2 Bulan', 'INDPLAND - 3 Bulan',
+            'HEAD - 1 Bulan', 'HEAD - 2 Bulan'
+          ]
+        },
+        {
+          id: 'p_gpt',
+          name: 'Chat GPT Plus',
+          category: 'Desain & Produktivitas',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_bstation',
+          name: 'Bstation',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_disney_plus',
+          name: 'Disney+',
+          category: 'Streaming',
+          packages: ['1 Bulan Nogar', '1 Bulan Garansi', '1 Hari', '3 Hari']
+        },
+        {
+          id: 'p_new_viu',
+          name: 'Viu',
+          category: 'Streaming',
+          packages: ['1 Bulan', '2 Bulan', '6 Bulan', '1 Tahun']
+        },
+        {
+          id: 'p_new_iqiyi',
+          name: 'iQIYI',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_youku',
+          name: 'Youku',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'SHARING - 2 Bulan', 'PRIVATE - 1 Bulan', 'PRIVATE - 2 Bulan']
+        },
+        {
+          id: 'p_new_wetv',
+          name: 'WeTV',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'SHARING - 2 Bulan', 'SHARING - 3 Bulan', 'PRIVATE - 1 Bulan', 'PRIVATE - 2 Bulan']
+        },
+        {
+          id: 'p_new_vidio',
+          name: 'Vidio',
+          category: 'Streaming',
+          packages: [
+            'ALL DEVICE - SHARING - 1 Bulan', 'ALL DEVICE - PRIVATE - 1 Bulan',
+            'MOBILE - SHARING - 1 Bulan', 'MOBILE - PRIVATE - 1 Bulan',
+            'ONLY TV - 1 Bulan'
+          ]
+        },
+        {
+          id: 'p_new_prime_video',
+          name: 'Prime Video',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_loklok',
+          name: 'Loklok',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_hbo_max',
+          name: 'HBOMax',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_dramabox',
+          name: 'Drama Box',
+          category: 'Streaming',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_wink',
+          name: 'Wink',
+          category: 'Editing',
+          packages: ['ANDROID - 7 Hari', 'IOS - 7 Hari']
+        },
+        {
+          id: 'p_new_vsco',
+          name: 'VSCO',
+          category: 'Editing',
+          packages: ['1 Tahun']
+        },
+        {
+          id: 'p_new_meitu',
+          name: 'Meitu',
+          category: 'Editing',
+          packages: ['ANDROID - 7 Hari', 'IOS - 7 Hari']
+        },
+        {
+          id: 'p_new_beauty_plus',
+          name: 'Beauty Plus',
+          category: 'Editing',
+          packages: ['SHARING - 7 Hari', 'SHARING - 1 Bulan', 'PRIVATE - 7 Hari', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_picsart',
+          name: 'Picsart',
+          category: 'Editing',
+          packages: ['7 Hari']
+        },
+        {
+          id: 'p_new_apple_music',
+          name: 'Apple Music',
+          category: 'Musik',
+          packages: ['1 Bulan']
+        },
+        {
+          id: 'p_new_chatgpt_go',
+          name: 'Chat GPT Go',
+          category: 'Desain & Produktivitas',
+          packages: ['SHARING - 1 Bulan', 'PRIVATE - 1 Bulan']
+        },
+        {
+          id: 'p_new_zoom',
+          name: 'Zoom Meeting',
+          category: 'Desain & Produktivitas',
+          packages: ['7 Hari', '14 Hari', '28 Hari']
+        },
+        {
+          id: 'p_new_vision_plus',
+          name: 'Vision+',
+          category: 'Streaming',
+          packages: ['1 Bulan']
+        }
+      ];
+      const PRODUCT_CATALOG_BY_ID = new Map(CATALOG_PRODUCT_CONFIGS.map(product => [product.id, product]));
+      const REMOVED_CATALOG_PRODUCT_IDS = new Set([
+        'p_new_scribd',
+        'p_new_crunchyroll',
+        'p_new_gagaoolala',
+        'p_new_duolingo',
+        'p_new_ibispaint',
+        'p_new_melolo',
+        'p_new_grammarly',
+        'p_new_shortmax'
+      ]);
+      const NEW_CATALOG_PRODUCTS = CATALOG_PRODUCT_CONFIGS
+        .filter(product => !DEFAULT_STATE.products.some(existing => existing.id === product.id))
+        .map(product => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          desc: product.category === 'Streaming'
+            ? 'Layanan hiburan streaming.'
+            : product.category === 'Editing'
+              ? 'Aplikasi kreatif dan editing.'
+              : product.category === 'Musik'
+                ? 'Layanan musik premium.'
+                : 'Layanan digital untuk produktivitas.',
+          stock: 0,
+          sold: 0,
+          packages: product.packages.map(label => ({ label, price: 0 }))
+        }));
 
       DEFAULT_STATE.products.push(...NEW_CATALOG_PRODUCTS);
 
@@ -1563,89 +1723,24 @@
 
       DEFAULT_STATE.products.push(...NEW_SOCIAL_MEDIA_PRODUCTS);
 
-      const STANDARD_PACKAGE_LABELS = ['1 Hari', '7 Hari', '1 Bulan'];
-      const NETFLIX_PACKAGE_LABELS = [
-        '1 Hari',
-        '7 Hari',
-        '1 Bulan (Sharing)',
-        '1 Bulan (Private)'
-      ];
-
-      function getStandardPackageLabel(label) {
-        const match = String(label || '').trim().match(/^(1\s*Hari|7\s*Hari|1\s*Bulan)(?=$|[\s(])/i);
-        if (!match) return '';
-        return match[1].replace(/\s+/g, ' ').toLowerCase() === '1 hari'
-          ? '1 Hari'
-          : match[1].replace(/\s+/g, ' ').toLowerCase() === '7 hari'
-            ? '7 Hari'
-            : '1 Bulan';
-      }
-
       function normalizeProductDurations(product) {
         const packages = Array.isArray(product.packages) ? product.packages : [];
+        const catalogProduct = PRODUCT_CATALOG_BY_ID.get(product.id);
 
-        if (String(product.name || '').trim() === 'Netflix Premium UHD') {
-          const netflixPackages = NETFLIX_PACKAGE_LABELS.map(label => {
-            const matchingPackage = packages.find(pkg =>
-              String(pkg.label || '').trim().toLowerCase() === label.toLowerCase()
-            );
-            return {
-              label,
-              price: Math.max(0, Number(matchingPackage?.price || 0))
-            };
-          });
+        if (catalogProduct) {
           return {
             ...product,
-            packages: netflixPackages,
-            legacyPackages: []
-          };
-        }
-
-        const standardDurationNames = new Set([
-          'Canva Pro Team',
-          'CapCut Pro',
-          'Spotify Individual',
-          'YouTube Premium',
-          'AI Assistant Plus',
-          'Disney+',
-          'DramaBox',
-          'HBO Max',
-          'iQIYI',
-          'Loklok',
-          'Meitu',
-          'Picsart',
-          'Prime Video',
-          'Scribd',
-          'Vidio',
-          'Vision+',
-          'Viu',
-          'VSCO',
-          'WeTV',
-          'Wink',
-          'Youku',
-          'Zoom',
-          'Crunchyroll',
-          'GagaOOLala',
-          'Duolingo',
-          'IbisPaint',
-          'Melolo',
-          'Grammarly',
-          'ShortMax'
-        ]);
-
-        if (standardDurationNames.has(String(product.name || '').trim())) {
-          const standardPackages = STANDARD_PACKAGE_LABELS.map(label => {
-            const matchingPackage = packages.find(pkg =>
-              getStandardPackageLabel(pkg.label) === label
-            );
-            return {
-              label,
-              price: Math.max(0, Number(matchingPackage?.price || 0))
-            };
-          });
-          return {
-            ...product,
-            packages: standardPackages,
+            name: catalogProduct.name,
+            category: catalogProduct.category,
+            packages: catalogProduct.packages.map(label => {
+              const matchingPackage = packages.find(pkg =>
+                String(pkg.label || '').trim().toLowerCase() === label.toLowerCase()
+              );
+              return {
+                label,
+                price: Math.max(0, Number(matchingPackage?.price || 0))
+              };
+            }),
             legacyPackages: []
           };
         }
@@ -1679,7 +1774,10 @@
           }
           const savedProducts = Array.isArray(parsed.products) && parsed.products.length
             ? parsed.products
-                .filter(product => !REMOVED_SOCIAL_MEDIA_PRODUCT_IDS.has(product.id))
+                .filter(product =>
+                  !REMOVED_SOCIAL_MEDIA_PRODUCT_IDS.has(product.id) &&
+                  !REMOVED_CATALOG_PRODUCT_IDS.has(product.id)
+                )
                 .map(product => SOCIAL_MEDIA_PRODUCT_BY_ID.has(product.id)
                   ? { ...product, name: SOCIAL_MEDIA_PRODUCT_BY_ID.get(product.id).name }
                   : product)
@@ -2710,7 +2808,7 @@
         if (socialMediaLabel) return socialMediaLabel;
         if (/^1\s*bulan\s*\(\s*sharing\s*\)$/i.test(duration)) return '1 Bulan (Sharing)';
         if (/^1\s*bulan\s*\(\s*private\s*\)$/i.test(duration)) return '1 Bulan (Private)';
-        return getStandardPackageLabel(duration) || duration;
+        return duration;
       }
 
       function canonicalSocialMediaPackageLabel(value) {
@@ -2917,13 +3015,15 @@
             const socialMediaConfig = SOCIAL_MEDIA_PRODUCT_BY_ID.get(product.id);
             const allowedLabels = socialMediaConfig
               ? SOCIAL_MEDIA_PRICE_PACKAGE_LABELS[socialMediaConfig.platformKey]
-              : normalizeProductName(product.name) === normalizeProductName('Netflix Premium UHD')
-                ? NETFLIX_PACKAGE_LABELS
-                : STANDARD_PACKAGE_LABELS;
+              : PRODUCT_CATALOG_BY_ID.get(product.id)?.packages ||
+                (product.packages || []).map(pkg => pkg.label);
             rowsForProduct.forEach(row => {
               const duration = canonicalDuration(row.duration);
-              if (allowedLabels.includes(duration)) {
-                priceByDuration.set(duration, Math.max(0, Number(row.price || 0)));
+              const matchingLabel = allowedLabels.find(label =>
+                normalizeProductName(label) === normalizeProductName(duration)
+              );
+              if (matchingLabel) {
+                priceByDuration.set(matchingLabel, Math.max(0, Number(row.price || 0)));
               }
             });
 
@@ -3141,13 +3241,13 @@
         if (prod?.id === 'p_new_disney_plus' || name.includes('disney')) {
           return `<span class="product-logo logo-disney" aria-label="Logo Disney+"><img src="${PRODUCT_LOGO_ASSETS.disney}" alt="Disney+" /></span>`;
         }
-        if (prod?.id === 'p_new_dramabox' || name.includes('dramabox')) {
+        if (prod?.id === 'p_new_dramabox' || name.includes('dramabox') || name === 'drama box') {
           return `<span class="product-logo logo-dramabox" aria-label="Logo DramaBox"><img src="${PRODUCT_LOGO_ASSETS.dramabox}" alt="DramaBox" /></span>`;
         }
         if (prod?.id === 'p_new_iqiyi' || name.includes('iqiyi')) {
           return `<span class="product-logo logo-iqiyi" aria-label="Logo iQIYI"><img src="${PRODUCT_LOGO_ASSETS.iqiyi}" alt="iQIYI" /></span>`;
         }
-        if (prod?.id === 'p_new_hbo_max' || name.includes('hbo max')) {
+        if (prod?.id === 'p_new_hbo_max' || name.includes('hbo max') || name === 'hbomax') {
           return `<span class="product-logo logo-hbo-max" aria-label="Logo HBO Max"><img src="${PRODUCT_LOGO_ASSETS.hboMax}" alt="HBO Max" /></span>`;
         }
         if (prod?.id === 'p_nf' || name.includes('netflix')) {
@@ -3165,7 +3265,7 @@
         if (prod?.id === 'p_yt' || name.includes('youtube')) {
           return `<span class="product-logo logo-youtube" aria-label="Logo YouTube"><img src="${EMBEDDED_ASSETS['youtube-logo.png']}" alt="YouTube" /></span>`;
         }
-        if (prod?.id === 'p_gpt' || name.includes('ai assistant') || name.includes('asisten ai')) {
+        if (prod?.id === 'p_gpt' || name.includes('ai assistant') || name.includes('asisten ai') || name.includes('chat gpt')) {
           return `<span class="product-logo logo-ai" aria-label="Logo AI Assistant Plus"><img src="${EMBEDDED_ASSETS['chatgpt-logo.png']}" alt="ChatGPT" /></span>`;
         }
         return `<span class="product-logo logo-ai" aria-label="Logo ${escapeHtml(prod?.name || 'produk')}">${escapeHtml(getInitials(prod?.name || 'Produk'))}</span>`;
